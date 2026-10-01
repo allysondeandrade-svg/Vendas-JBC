@@ -561,7 +561,69 @@ html, body {
 .btn-clean-ghost:hover {
   background: rgba(239, 68, 68, 0.08);
   color: var(--danger);
-  border-color: var(--danger);
+}
+
+/* Dynamic Product Rows */
+.product-entry {
+  position: relative;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--card-border);
+}
+
+.product-entry:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.btn-add-product {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background: #2dd4bf;
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(45, 212, 191, 0.4);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.btn-add-product:hover {
+  background: #14b8a6;
+  transform: scale(1.05);
+}
+
+.btn-add-product:active {
+  transform: scale(0.95);
+}
+
+.btn-remove-product {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.btn-remove-product:hover {
+  background: #dc2626;
+  transform: scale(1.05);
+}
+
+.btn-remove-product:active {
+  transform: scale(0.95);
 }
 
 /* Form Rows matching the user wireframe layout */

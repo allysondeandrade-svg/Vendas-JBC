@@ -187,6 +187,7 @@ let appState = {
   pendingWhatsappMessage: '',
   pendingWhatsappPhone: '',
   parsedBulkProducts: [],
+  currentCart: [],
   
   // Real-time calculation context for currently selected product
   currentSaleProductContext: {
@@ -285,6 +286,11 @@ const DOM = {
   vendedoresDatalist: document.getElementById('vendedoresDatalist'),
   inputProduto: document.getElementById('inputProduto'),
   productBaseInfoChip: document.getElementById('productBaseInfoChip'),
+  inputPreco: document.getElementById('inputPreco'),
+  inputQuantidade: document.getElementById('inputQuantidade'),
+  btnAddCartItem: document.getElementById('btnAddCartItem'),
+  cartItemsContainer: document.getElementById('cartItemsContainer'),
+  emptyCartMsg: document.getElementById('emptyCartMsg'),
   inputPreco: document.getElementById('inputPreco'),
   inputCliente: document.getElementById('inputCliente'),
   inputContato: document.getElementById('inputContato'),
@@ -777,83 +783,35 @@ function formatBRL(number) {
   return number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function onProductInputChange() {
-  const val = DOM.inputProduto.value.trim().toLowerCase();
+function onProductInputChange(e) {
+  const target = e ? e.target : document.querySelector('.input-produto');
+  if (!target) return;
+  const val = target.value.trim().toLowerCase();
+  
   const matched = appState.products.find(p => {
     const displayVal = p.sku ? `${p.sku} - ${p.name}`.toLowerCase() : p.name.toLowerCase();
     return displayVal === val || p.name.toLowerCase() === val || (p.sku && p.sku.toLowerCase() === val);
   });
   
   if (matched) {
-    if (!DOM.inputPreco.value.trim()) {
-      DOM.inputPreco.value = matched.price;
+    const row = target.closest('.product-entry');
+    if (row) {
+      const precoInput = row.querySelector('.input-preco');
+      if (precoInput && !precoInput.value.trim()) {
+        const numPreco = parsePriceNumber(matched.price);
+        precoInput.value = formatBRL(numPreco);
+      }
     }
-
-    const basePrice = parsePriceNumber(matched.basePrice || matched.price);
-    const cost = parsePriceNumber(matched.cost || '0');
-
-    appState.currentSaleProductContext = {
-      matchedProduct: matched,
-      basePrice: basePrice,
-      cost: cost,
-      isCommissionManuallyEdited: false
-    };
-
-    if (DOM.productBaseInfoChip) {
-      DOM.productBaseInfoChip.innerHTML = `
-        <span>🏷️ Preço Base: <strong>R$ ${formatBRL(basePrice)}</strong></span>
-        <span>| Custo: <strong>R$ ${formatBRL(cost)}</strong></span>
-      `;
-      DOM.productBaseInfoChip.style.display = 'inline-flex';
-    }
-
-    recalculateFromProductRules();
-    // showToast(`Produto "${matched.name}" vinculado às regras de preço!`, 'info');
+    recalculateTotals();
   } else {
-    appState.currentSaleProductContext.matchedProduct = null;
-    if (DOM.productBaseInfoChip) {
-      DOM.productBaseInfoChip.style.display = 'none';
-    }
+    recalculateTotals();
   }
 }
 
 function recalculateFromProductRules() {
-  const precoVenda = parsePriceNumber(DOM.inputPreco.value);
-  const basePrice = appState.currentSaleProductContext.basePrice;
-  const cost = appState.currentSaleProductContext.cost;
-
-  if (basePrice > 0 || appState.currentSaleProductContext.matchedProduct) {
-    if (!appState.currentSaleProductContext.isCommissionManuallyEdited) {
-      const comissao = precoVenda - basePrice;
-      const lucro = basePrice - cost;
-
-      DOM.inputComissao.value = formatBRL(comissao);
-      DOM.inputLucro.value = formatBRL(lucro);
-
-      if (DOM.hintComissao) {
-        DOM.hintComissao.textContent = `Fórmula: Preço (R$ ${formatBRL(precoVenda)}) - Preço Base (R$ ${formatBRL(basePrice)}) = R$ ${formatBRL(comissao)}`;
-        DOM.hintComissao.className = 'calc-formula-hint highlight-calc';
-        DOM.hintComissao.style.display = 'block';
-      }
-
-      if (DOM.hintLucro) {
-        DOM.hintLucro.textContent = `Fórmula: Preço Base (R$ ${formatBRL(basePrice)}) - Custo (R$ ${formatBRL(cost)}) = R$ ${formatBRL(lucro)}`;
-        DOM.hintLucro.className = 'calc-formula-hint highlight-calc';
-        DOM.hintLucro.style.display = 'block';
-      }
-    } else {
-      recalculateLucroFromCustomCommission();
-    }
-  } else {
-    if (precoVenda > 0) {
-      const pct = appState.config.comissaoPadrao || 10;
-      const comissao = (precoVenda * pct) / 100;
-      const lucro = precoVenda * 0.35;
-      DOM.inputComissao.value = formatBRL(comissao);
-      DOM.inputLucro.value = formatBRL(lucro);
-    }
-  }
+  recalculateTotals();
 }
+
 
 function onComissaoInputChange() {
   appState.currentSaleProductContext.isCommissionManuallyEdited = true;
@@ -861,31 +819,35 @@ function onComissaoInputChange() {
 }
 
 function recalculateLucroFromCustomCommission() {
-  const precoVenda = parsePriceNumber(DOM.inputPreco.value);
-  const cost = appState.currentSaleProductContext.cost;
-  const basePrice = appState.currentSaleProductContext.basePrice;
   const customComissao = parsePriceNumber(DOM.inputComissao.value);
+  const items = getActiveProductsFromDOM();
+  let totalPreco = 0;
+  let totalBase = 0;
+  let totalCusto = 0;
+
+  items.forEach(item => {
+    totalPreco += item.subtotal;
+    totalBase += (item.basePrice * item.quantidade);
+    totalCusto += (item.cost * item.quantidade);
+  });
 
   let novoLucro = 0;
-  if (cost > 0) {
-    novoLucro = precoVenda - cost - customComissao;
-  } else if (basePrice > 0) {
-    novoLucro = precoVenda - customComissao;
+  if (totalCusto > 0) {
+    novoLucro = totalPreco - totalCusto - customComissao;
   } else {
-    novoLucro = precoVenda - customComissao;
+    novoLucro = totalPreco - customComissao;
   }
 
-  DOM.inputLucro.value = formatBRL(novoLucro);
+  if (DOM.inputLucro) DOM.inputLucro.value = formatBRL(novoLucro);
 
   if (DOM.hintComissao) {
-    const padraoComissao = precoVenda - basePrice;
-    DOM.hintComissao.textContent = `✏️ Comissão alterada manualmente (padrão da planilha era R$ ${formatBRL(padraoComissao)})`;
+    DOM.hintComissao.textContent = `✏️ Comissão alterada manualmente`;
     DOM.hintComissao.className = 'calc-formula-hint highlight-adjusted';
     DOM.hintComissao.style.display = 'block';
   }
 
   if (DOM.hintLucro) {
-    DOM.hintLucro.textContent = `⚡ Lucro impactado: Preço (R$ ${formatBRL(precoVenda)}) - Custo (R$ ${formatBRL(cost)}) - Comissão (R$ ${formatBRL(customComissao)}) = R$ ${formatBRL(novoLucro)}`;
+    DOM.hintLucro.textContent = `⚡ Lucro impactado: Preço (R$ ${formatBRL(totalPreco)}) - Custo (R$ ${formatBRL(totalCusto)}) - Comissão (R$ ${formatBRL(customComissao)}) = R$ ${formatBRL(novoLucro)}`;
     DOM.hintLucro.className = 'calc-formula-hint highlight-adjusted';
     DOM.hintLucro.style.display = 'block';
   }
@@ -893,13 +855,13 @@ function recalculateLucroFromCustomCommission() {
 
 function resetToProductRules() {
   appState.currentSaleProductContext.isCommissionManuallyEdited = false;
-  recalculateFromProductRules();
-  showToast('Valores restaurados pela fórmula da planilha!', 'info');
+  recalculateTotals();
+  showToast('Valores restaurados pela fórmula automática!', 'info');
   SoundEffects.playPop();
 }
 
 function onSellingPriceInputChange() {
-  recalculateFromProductRules();
+  recalculateTotals();
 }
 
 window.formatCurrencyInput = function(elem) {
@@ -912,19 +874,16 @@ window.formatCurrencyInput = function(elem) {
   v = (parseInt(v, 10) / 100).toFixed(2).replace('.', ',');
   v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
   elem.value = v;
-  if (elem.id === 'inputPreco' || elem.id === 'inputFrete') {
+  
+  if (elem.classList.contains('input-preco') || elem.id === 'inputFrete') {
     window.calculateTotal();
   }
 };
 
 window.calculateTotal = function() {
-  if (!DOM.inputTotal) return;
-  const precoStr = DOM.inputPreco ? DOM.inputPreco.value : '0';
-  const freteStr = DOM.inputFrete ? DOM.inputFrete.value : '0';
-  const preco = parsePriceNumber(precoStr);
-  const frete = parsePriceNumber(freteStr);
-  const total = preco + frete;
-  DOM.inputTotal.value = formatBRL(total);
+  if (typeof recalculateCartTotals === 'function') {
+    recalculateCartTotals();
+  }
 };
 
 window.formatAndSearchCEP = async function(elem) {
@@ -959,12 +918,172 @@ window.formatAndSearchCEP = async function(elem) {
   }
 };
 
+window.addEmptyProductRow = function() {
+  const container = document.getElementById('productsContainer');
+  const index = container.children.length;
+  
+  const newRow = document.createElement('div');
+  newRow.className = 'product-entry';
+  newRow.dataset.index = index;
+  
+  newRow.innerHTML = `
+    <div class="form-row" id="row-produto-${index}">
+      <label for="inputProduto_${index}" class="form-label">
+        Produto<span class="required-star">*</span>
+      </label>
+      <div class="input-wrapper" style="display: flex; gap: 8px; align-items: center;">
+        <input type="text" id="inputProduto_${index}" name="produto" class="form-input input-produto" placeholder="Ex: Fone Bluetooth" list="produtosDatalist">
+        <button type="button" class="btn-remove-product" onclick="window.removeProductRow(this)" title="Remover este produto">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="form-row" id="row-preco-${index}">
+      <label for="inputPreco_${index}" class="form-label">
+        Preço<span class="required-star">*</span>
+      </label>
+      <div class="input-wrapper">
+        <div class="prefix-input">
+          <span class="currency-prefix">R$</span>
+          <input type="tel" id="inputPreco_${index}" name="preco" class="form-input input-preco" placeholder="0,00" oninput="formatCurrencyInput(this)">
+        </div>
+      </div>
+    </div>
+  `;
+  
+  container.appendChild(newRow);
+  
+  // Attach datalist input event manually for new row
+  const inputProduto = newRow.querySelector('.input-produto');
+  inputProduto.addEventListener('input', onProductInputChange);
+  inputProduto.addEventListener('change', onProductInputChange);
+  
+  const inputPreco = newRow.querySelector('.input-preco');
+  inputPreco.addEventListener('input', onSellingPriceInputChange);
+  
+  SoundEffects.playPop();
+};
+
+window.removeProductRow = function(button) {
+  const row = button.closest('.product-entry');
+  row.remove();
+  recalculateTotals();
+  SoundEffects.playPop();
+};
+
+function getActiveProductsFromDOM() {
+  const entries = document.querySelectorAll('.product-entry');
+  const items = [];
+  entries.forEach(entry => {
+    const prodInput = entry.querySelector('.input-produto');
+    const precoInput = entry.querySelector('.input-preco');
+    const produto = prodInput ? prodInput.value.trim() : '';
+    const preco = precoInput ? parsePriceNumber(precoInput.value) : 0;
+    
+    // cost and basePrice would normally be bound to the input, but since we map datalist globally,
+    // we use a simplified fallback. If it's the exact same logic, we just take preco.
+    const matched = appState.products.find(p => p.name.toLowerCase() === produto.toLowerCase());
+    const basePrice = matched ? parsePriceNumber(matched.basePrice || matched.price) : preco;
+    const cost = matched ? parsePriceNumber(matched.cost || '0') : 0;
+
+    if (produto) {
+      items.push({
+        produto,
+        preco,
+        quantidade: 1, // we don't have a quantity field anymore
+        subtotal: preco,
+        basePrice,
+        cost
+      });
+    }
+  });
+  return items;
+}
+
+function recalculateTotals() {
+  const items = getActiveProductsFromDOM();
+  let totalPreco = 0;
+  let totalBase = 0;
+  let totalCusto = 0;
+
+  items.forEach(item => {
+    totalPreco += item.subtotal;
+    totalBase += (item.basePrice * item.quantidade);
+    totalCusto += (item.cost * item.quantidade);
+  });
+
+  // Calculate Comissao and Lucro
+  let comissao = totalPreco - totalBase;
+  if (totalBase === 0 && items.length > 0) {
+    const pct = appState.config.comissaoPadrao || 10;
+    comissao = (totalPreco * pct) / 100;
+  }
+  
+  let lucro = totalBase - totalCusto;
+  if (totalBase === 0 && items.length > 0) {
+    lucro = totalPreco * 0.35; // default fallback if no costs configured
+  }
+  if (items.length === 0) {
+    comissao = 0;
+    lucro = 0;
+  }
+
+  // Update inputs if not manually edited
+  if (!appState.currentSaleProductContext.isCommissionManuallyEdited) {
+    if (DOM.inputComissao) DOM.inputComissao.value = formatBRL(comissao);
+    if (DOM.inputLucro) DOM.inputLucro.value = formatBRL(lucro);
+    
+    if (DOM.hintComissao && items.length > 0) {
+      DOM.hintComissao.textContent = `Fórmula Automática: Total (R$ ${formatBRL(totalPreco)}) - Base (R$ ${formatBRL(totalBase)}) = R$ ${formatBRL(comissao)}`;
+      DOM.hintComissao.className = 'calc-formula-hint highlight-calc';
+      DOM.hintComissao.style.display = 'block';
+    } else if (DOM.hintComissao) {
+      DOM.hintComissao.style.display = 'none';
+    }
+
+    if (DOM.hintLucro && items.length > 0) {
+      DOM.hintLucro.textContent = `Fórmula Automática: Base (R$ ${formatBRL(totalBase)}) - Custo (R$ ${formatBRL(totalCusto)}) = R$ ${formatBRL(lucro)}`;
+      DOM.hintLucro.className = 'calc-formula-hint highlight-calc';
+      DOM.hintLucro.style.display = 'block';
+    } else if (DOM.hintLucro) {
+      DOM.hintLucro.style.display = 'none';
+    }
+  }
+  
+  // Total da venda é subtotal dos itens + frete
+  const frete = parsePriceNumber(DOM.inputFrete ? DOM.inputFrete.value : '0');
+  if (DOM.inputTotal) DOM.inputTotal.value = formatBRL(totalPreco + frete);
+}
+
 function clearSalesForm() {
   DOM.salesForm.reset();
   const inputCEP = document.getElementById('inputCEP');
   if (inputCEP) inputCEP.value = '';
+  const inputParcelas = document.getElementById('inputParcelas');
+  if (inputParcelas) {
+    inputParcelas.value = '';
+    inputParcelas.style.display = 'none';
+  }
   applyDefaultSellerIfEmpty();
   
+  // Remove extra product rows, keep only the first one
+  const container = document.getElementById('productsContainer');
+  if (container) {
+    const entries = container.querySelectorAll('.product-entry');
+    for (let i = 1; i < entries.length; i++) {
+      entries[i].remove();
+    }
+    // clear the first one
+    const firstProd = container.querySelector('.input-produto');
+    const firstPreco = container.querySelector('.input-preco');
+    if (firstProd) firstProd.value = '';
+    if (firstPreco) firstPreco.value = '';
+  }
+  
+  recalculateTotals();
+
   // Set default date for Data da Entrega (YYYY-MM-DD)
   if (DOM.inputDataEntrega) {
     const now = new Date();
@@ -1010,25 +1129,18 @@ function validateSalesForm() {
     errors.push('Vendedor');
   }
 
-  const produto = DOM.inputProduto.value.trim();
-  if (!produto) {
-    const row = document.getElementById('row-produto');
-    row.classList.add('has-error');
-    row.querySelector('.field-feedback').textContent = 'O campo Produto é obrigatório.';
+  const items = getActiveProductsFromDOM();
+  
+  if (items.length === 0) {
     isValid = false;
     errors.push('Produto');
+    showToast('Informe o produto e o preço.', 'error');
+  } else {
+    // If we have at least one product, we still need to make sure the first row isn't empty if required, 
+    // but the getActiveProductsFromDOM already returns only filled products.
   }
 
-  const preco = DOM.inputPreco.value.trim();
-  if (!preco) {
-    const row = document.getElementById('row-preco');
-    row.classList.add('has-error');
-    row.querySelector('.field-feedback').textContent = 'O campo Preço é obrigatório.';
-    isValid = false;
-    errors.push('Preço');
-  }
-
-  if (!isValid) {
+  if (!isValid && errors.length > 0 && errors[0] !== 'Adicione pelo menos 1 produto no carrinho') {
     showToast(`Preencha os campos obrigatórios (*): ${errors.join(', ')}`, 'error');
   }
 
@@ -1043,11 +1155,14 @@ function handleSalesFormSubmit(e) {
   const now = new Date();
   const dateFormatted = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
+  const items = getActiveProductsFromDOM();
+
   const newSale = {
     id: appState.editingSaleId || ('sale-' + Date.now()),
     vendedor: DOM.inputVendedor.value.trim(),
-    produto: DOM.inputProduto.value.trim(),
-    preco: DOM.inputPreco.value.trim(),
+    itens: items, // Save items array
+    produto: items.map(item => item.produto).join(', '), // fallback text
+    preco: formatBRL(items.reduce((acc, item) => acc + item.subtotal, 0)), // fallback text
     cliente: DOM.inputCliente.value.trim() || 'Não informado',
     contato: DOM.inputContato.value.trim() || 'Não informado',
     cep: document.getElementById('inputCEP') ? document.getElementById('inputCEP').value.trim() || 'Não informado' : 'Não informado',
@@ -1056,6 +1171,7 @@ function handleSalesFormSubmit(e) {
     total: DOM.inputTotal.value.trim() || '0,00',
     data_entrega: DOM.inputDataEntrega.value ? DOM.inputDataEntrega.value.split('-').reverse().join('/') : 'Não informada',
     pagamento: DOM.inputPagamento.value.trim() || 'Não informado',
+    parcelas: document.getElementById('inputParcelas') ? document.getElementById('inputParcelas').value.trim() : '',
     observacao: DOM.inputObservacao.value.trim() || 'Nenhuma',
     comissao: DOM.inputComissao.value.trim() || '0,00',
     lucro: DOM.inputLucro.value.trim() || '0,00',
@@ -1387,14 +1503,43 @@ window.onEditSale = function(saleId) {
   }
 
   DOM.inputVendedor.value = sale.vendedor;
-  DOM.inputProduto.value = sale.produto;
-  DOM.inputPreco.value = sale.preco.replace('R$ ', '');
+  
+  const container = document.getElementById('productsContainer');
+  if (container) {
+    container.innerHTML = '';
+    let itemsToRender = sale.itens;
+    if (!itemsToRender || itemsToRender.length === 0) {
+      itemsToRender = [{ produto: sale.produto, preco: parsePriceNumber(sale.preco) }];
+    }
+    itemsToRender.forEach((item, index) => {
+      window.addEmptyProductRow();
+      const entries = container.querySelectorAll('.product-entry');
+      const latestEntry = entries[entries.length - 1];
+      if (latestEntry) {
+        // Se era do carrinho antigo, tem item.produto com '1x ' na frente, mas para retrocompatibilidade deixamos assim
+        const prodName = typeof item === 'object' ? item.produto : item; 
+        const prodPreco = typeof item === 'object' ? item.preco : 0;
+        latestEntry.querySelector('.input-produto').value = prodName;
+        latestEntry.querySelector('.input-preco').value = typeof prodPreco === 'number' ? formatBRL(prodPreco) : prodPreco.toString().replace('R$ ', '');
+      }
+    });
+  }
   DOM.inputCliente.value = sale.cliente !== 'Não informado' ? sale.cliente : '';
   DOM.inputContato.value = sale.contato !== 'Não informado' ? sale.contato : '';
   if (DOM.inputCEP) DOM.inputCEP.value = sale.cep && sale.cep !== 'Não informado' ? sale.cep : '';
   DOM.inputEndereco.value = sale.endereco !== 'Não informado' ? sale.endereco : '';
   DOM.inputFrete.value = sale.frete !== 'Não informado' ? sale.frete.replace('R$ ', '') : '';
   DOM.inputPagamento.value = sale.pagamento !== 'Não informado' ? sale.pagamento : '';
+  const inputParcelas = document.getElementById('inputParcelas');
+  if (inputParcelas) {
+    if (sale.parcelas) {
+      inputParcelas.value = sale.parcelas;
+      inputParcelas.style.display = 'block';
+    } else {
+      inputParcelas.value = '';
+      inputParcelas.style.display = sale.pagamento.toLowerCase().includes('crédito') ? 'block' : 'none';
+    }
+  }
   DOM.inputObservacao.value = sale.observacao !== 'Nenhuma' ? sale.observacao : '';
   DOM.inputComissao.value = sale.comissao.replace('R$ ', '');
   DOM.inputTotal.value = sale.total.replace('R$ ', '');
@@ -1487,65 +1632,111 @@ function exportFilteredHistoryToCSV() {
 // WHATSAPP FAB & SHARING LOGIC
 // ============================================================================
 function generateWhatsappMessage(saleData) {
-  let template = appState.config.whatsMsgTemplate || DEFAULT_WHATSAPP_TEMPLATE;
-  
-  // Strip out old headers/footers if present in saved config
-  // Strip out old headers/footers if present in saved config
-  template = template.replace(/📱 \*REGISTRO DE VENDA\* 🧾\n--------------------------------\n/g, '');
-  template = template.replace(/🛒 \*REGISTRO DE VENDA\* 🛒\n--------------------------------\n/g, '');
-  template = template.replace(/\n--------------------------------\n_Gerado pelo aplicativo Vendas JBC_/g, '');
-
-  if (!template.includes('{cep}')) {
-    template = template.replace('📍 *Endereço:* {endereco}', '📮 *CEP:* {cep}\n📍 *Endereço:* {endereco}');
-    if (!template.includes('{cep}')) { // fallback if string mismatch
-      template = template.replace('{endereco}', '{cep}\n{endereco}');
+  // Extract items list
+  let itensStr = '';
+  if (saleData.itens && saleData.itens.length > 0) {
+    itensStr = saleData.itens.map(item => {
+      // Strip SKU prefix if present (e.g., "SKU123 - Nome do Produto")
+      let nomeProduto = item.produto;
+      if (nomeProduto.includes(' - ')) {
+        nomeProduto = nomeProduto.split(' - ').slice(1).join(' - ');
+      }
+      const pPreco = typeof item.preco === 'number' ? formatBRL(item.preco) : String(item.preco).replace('R$ ', '');
+      return `${nomeProduto.trim()} R$ ${pPreco}`;
+    }).join('\n');
+  } else {
+    // fallback if old sale
+    let nomeProduto = saleData.produto;
+    if (nomeProduto.includes(' - ')) {
+      nomeProduto = nomeProduto.split(' - ').slice(1).join(' - ');
     }
+    const pPreco = String(saleData.preco).replace('R$ ', '');
+    itensStr = `${nomeProduto.trim()} R$ ${pPreco}`;
   }
 
-  const replaceMap = {
-    '{vendedor}': saleData.vendedor,
-    '{produto}': saleData.produto,
-    '{preco}': saleData.preco,
-    '{cliente}': saleData.cliente,
-    '{contato}': saleData.contato,
-    '{cep}': saleData.cep,
-    '{endereco}': saleData.endereco,
-    '{frete}': saleData.frete,
-    '{total}': saleData.total,
-    '{data_entrega}': saleData.data_entrega,
-    '{pagamento}': saleData.pagamento,
-    '{obs}': saleData.observacao,
-    '{comissao}': saleData.comissao,
-    '{lucro}': saleData.lucro,
-    '{data}': saleData.dateString || new Date().toLocaleString('pt-BR')
-  };
-
-  let finalLines = [];
-  const lines = template.split('\n');
-  
-  for (let line of lines) {
-    let keepLine = true;
-    for (const [key, rawVal] of Object.entries(replaceMap)) {
-      if (line.includes(key)) {
-        const val = rawVal ? String(rawVal).trim() : '';
-        const isEmpty = !val || val === '-' || val === 'Não informado' || val === 'Não informada' || val === 'Nenhuma' || val === '0,00' || val === 'R$ 0,00';
-        
-        if (isEmpty) {
-          keepLine = false;
-          break;
-        } else {
-          let displayVal = val;
-          if (['{preco}', '{comissao}', '{lucro}', '{total}'].includes(key) && !val.startsWith('R$')) {
-            displayVal = `R$ ${val}`;
-          }
-          line = line.replaceAll(key, displayVal);
-        }
+  // Format delivery date
+  let dataEntregaFormatada = saleData.data_entrega;
+  if (dataEntregaFormatada && dataEntregaFormatada !== 'Não informada') {
+    // If it's dd/mm/yyyy, convert to Date object to get day of week
+    const parts = dataEntregaFormatada.split('/');
+    if (parts.length === 3) {
+      const dt = new Date(parts[2], parts[1] - 1, parts[0]);
+      if (!isNaN(dt.getTime())) {
+        const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        const diaNome = diasSemana[dt.getDay()];
+        dataEntregaFormatada = `${parts[0]}/${parts[1]} ${diaNome}`;
       }
     }
-    if (keepLine) finalLines.push(line);
   }
 
-  return finalLines.join('\n');
+  // Format CEP (no hyphens)
+  let cepLimpado = saleData.cep;
+  if (cepLimpado && cepLimpado !== 'Não informado') {
+    cepLimpado = cepLimpado.replace(/\D/g, '');
+  }
+
+  let pagamentoInfo = saleData.pagamento !== 'Não informado' ? saleData.pagamento : '';
+  if (saleData.parcelas && saleData.parcelas.trim()) {
+     const pStr = saleData.parcelas.trim().toLowerCase();
+     const numParcelas = parseInt(pStr.replace(/\D/g, ''), 10);
+     if (!isNaN(numParcelas) && numParcelas > 0) {
+        const totalNum = parsePriceNumber(saleData.total);
+        const valorParcela = totalNum / numParcelas;
+        pagamentoInfo += ` em ${numParcelas}x de R$ ${formatBRL(valorParcela)}`;
+     } else {
+        pagamentoInfo += ` ${saleData.parcelas.trim()}`;
+     }
+  }
+
+  const finalLines = [];
+  
+  if (saleData.cliente !== 'Não informado' || saleData.contato !== 'Não informado') {
+    let clientLine = [];
+    if (saleData.cliente !== 'Não informado') clientLine.push(`${saleData.cliente}`);
+    if (saleData.contato !== 'Não informado') clientLine.push(`${saleData.contato}`);
+    finalLines.push(clientLine.join(' '));
+  }
+  
+  finalLines.push('');
+  finalLines.push(itensStr);
+  finalLines.push('');
+  
+  const freteFormat = String(saleData.frete).replace('R$ ', '');
+  if (saleData.frete && freteFormat !== '0,00' && saleData.frete !== 'Não informado') {
+    finalLines.push(`Frete R$ ${freteFormat}`);
+  }
+  
+  const totalFormat = String(saleData.total).replace('R$ ', '');
+  finalLines.push(`Total R$ ${totalFormat}`);
+  
+  if (pagamentoInfo) {
+    finalLines.push(pagamentoInfo);
+  }
+
+  finalLines.push('');
+
+  if (cepLimpado && cepLimpado !== 'Não informado') {
+    finalLines.push(`CEP ${cepLimpado}`);
+  }
+  
+  if (saleData.endereco && saleData.endereco !== 'Não informado') {
+    finalLines.push(saleData.endereco);
+  }
+
+  if (cepLimpado || (saleData.endereco && saleData.endereco !== 'Não informado')) {
+    finalLines.push('');
+  }
+
+  if (dataEntregaFormatada && dataEntregaFormatada !== 'Não informada') {
+    finalLines.push(`Data da Entrega ${dataEntregaFormatada}`);
+  }
+  
+  if (saleData.observacao && saleData.observacao !== 'Nenhuma') {
+    finalLines.push(`Observação ${saleData.observacao}`);
+  }
+
+  // trim any extra trailing/leading newlines
+  return finalLines.join('\n').trim();
 }
 
 function extractPhoneNumber(rawPhone) {
@@ -1564,26 +1755,28 @@ function openWhatsappShareModal(saleData) {
   let dataToUse = saleData;
 
   if (!dataToUse) {
-    const vendedor = DOM.inputVendedor.value.trim();
-    const produto = DOM.inputProduto.value.trim();
-    const preco = DOM.inputPreco.value.trim();
+    const items = getActiveProductsFromDOM();
+    const vendedor = DOM.inputVendedor ? DOM.inputVendedor.value.trim() : '';
 
-    if (vendedor || produto || preco) {
+    if (vendedor || items.length > 0) {
       const now = new Date();
       dataToUse = {
         vendedor: vendedor || '(A preencher)',
-        produto: produto || '(A preencher)',
-        preco: preco || '0,00',
-        cliente: DOM.inputCliente.value.trim() || 'Não informado',
-        contato: DOM.inputContato.value.trim() || 'Não informado',
-        endereco: DOM.inputEndereco.value.trim() || 'Não informado',
-        frete: DOM.inputFrete.value.trim() || 'Não informado',
-        total: DOM.inputTotal.value.trim() || '0,00',
-        data_entrega: DOM.inputDataEntrega.value ? DOM.inputDataEntrega.value.split('-').reverse().join('/') : 'Não informada',
-        pagamento: DOM.inputPagamento.value.trim() || 'Não informado',
-        observacao: DOM.inputObservacao.value.trim() || 'Nenhuma',
-        comissao: DOM.inputComissao.value.trim() || '0,00',
-        lucro: DOM.inputLucro.value.trim() || '0,00',
+        itens: items,
+        produto: items.map(item => item.produto).join(', ') || '(A preencher)',
+        preco: formatBRL(items.reduce((acc, item) => acc + item.subtotal, 0)),
+        cliente: DOM.inputCliente ? DOM.inputCliente.value.trim() || 'Não informado' : 'Não informado',
+        contato: DOM.inputContato ? DOM.inputContato.value.trim() || 'Não informado' : 'Não informado',
+        endereco: DOM.inputEndereco ? DOM.inputEndereco.value.trim() || 'Não informado' : 'Não informado',
+        cep: document.getElementById('inputCEP') ? document.getElementById('inputCEP').value.trim() || 'Não informado' : 'Não informado',
+        frete: DOM.inputFrete ? DOM.inputFrete.value.trim() || 'Não informado' : 'Não informado',
+        total: DOM.inputTotal ? DOM.inputTotal.value.trim() || '0,00' : '0,00',
+        data_entrega: DOM.inputDataEntrega && DOM.inputDataEntrega.value ? DOM.inputDataEntrega.value.split('-').reverse().join('/') : 'Não informada',
+        pagamento: DOM.inputPagamento ? DOM.inputPagamento.value.trim() || 'Não informado' : 'Não informado',
+        parcelas: document.getElementById('inputParcelas') ? document.getElementById('inputParcelas').value.trim() : '',
+        observacao: DOM.inputObservacao ? DOM.inputObservacao.value.trim() || 'Nenhuma' : 'Nenhuma',
+        comissao: DOM.inputComissao ? DOM.inputComissao.value.trim() || '0,00' : '0,00',
+        lucro: DOM.inputLucro ? DOM.inputLucro.value.trim() || '0,00' : '0,00',
         dateString: now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
       };
     } else if (appState.sales.length > 0) {
@@ -2145,13 +2338,26 @@ function setupEventListeners() {
   DOM.salesForm.addEventListener('submit', handleSalesFormSubmit);
   DOM.btnClearForm.addEventListener('click', clearSalesForm);
   
-  DOM.inputProduto.addEventListener('input', onProductInputChange);
-  DOM.inputProduto.addEventListener('change', onProductInputChange);
-  DOM.inputPreco.addEventListener('input', onSellingPriceInputChange);
-  DOM.inputComissao.addEventListener('input', onComissaoInputChange);
+  const btnAddProductRow = document.getElementById('btnAddProductRow');
+  if (btnAddProductRow) {
+    btnAddProductRow.addEventListener('click', window.addEmptyProductRow);
+  }
+
+  const firstProdInput = document.getElementById('inputProduto_0');
+  if (firstProdInput) {
+    firstProdInput.addEventListener('input', onProductInputChange);
+    firstProdInput.addEventListener('change', onProductInputChange);
+  }
   
-  DOM.btnCalcComissao.addEventListener('click', resetToProductRules);
-  DOM.btnCalcLucro.addEventListener('click', resetToProductRules);
+  const firstPrecoInput = document.getElementById('inputPreco_0');
+  if (firstPrecoInput) {
+    firstPrecoInput.addEventListener('input', onSellingPriceInputChange);
+  }
+
+  if (DOM.inputComissao) DOM.inputComissao.addEventListener('input', onComissaoInputChange);
+  
+  if (DOM.btnCalcComissao) DOM.btnCalcComissao.addEventListener('click', resetToProductRules);
+  if (DOM.btnCalcLucro) DOM.btnCalcLucro.addEventListener('click', resetToProductRules);
 
   // History Date Presets
   document.querySelectorAll('.date-preset-pill').forEach(btn => {

@@ -182,32 +182,37 @@
                 </div>
               </div>
 
-              <!-- 2. Produto* -->
-              <div class="form-row" id="row-produto">
-                <label for="inputProduto" class="form-label">
-                  Produto<span class="required-star">*</span>
-                </label>
-                <div class="input-wrapper">
-                  <input type="text" id="inputProduto" name="produto" class="form-input" placeholder="Ex: Tênis Air Max ou Ref 882" list="produtosDatalist" onfocus="this.dataset.oldValue=this.value; this.value=''" onblur="if(this.value==='') this.value=this.dataset.oldValue" required>
-                  <datalist id="produtosDatalist">
-                    <!-- Populated dynamically -->
-                  </datalist>
-                  <div class="product-base-info-chip" id="productBaseInfoChip" style="display: none;"></div>
-                  <span class="field-feedback"></span>
-                </div>
-              </div>
-
-              <!-- 3. Preço* -->
-              <div class="form-row" id="row-preco">
-                <label for="inputPreco" class="form-label">
-                  Preço<span class="required-star">*</span>
-                </label>
-                <div class="input-wrapper">
-                  <div class="prefix-input">
-                    <span class="currency-prefix">R$</span>
-                    <input type="tel" id="inputPreco" name="preco" class="form-input" placeholder="0,00" required oninput="formatCurrencyInput(this)">
+              <!-- CONTAINER DE PRODUTOS -->
+              <div id="productsContainer">
+                <!-- 2. Produto* -->
+                <div class="product-entry" data-index="0">
+                  <div class="form-row" id="row-produto-0">
+                    <label for="inputProduto_0" class="form-label">
+                      Produto<span class="required-star">*</span>
+                    </label>
+                    <div class="input-wrapper" style="display: flex; gap: 8px; align-items: center;">
+                      <input type="text" id="inputProduto_0" name="produto" class="form-input input-produto" placeholder="Ex: Tênis Air Max" list="produtosDatalist" required>
+                      <datalist id="produtosDatalist"></datalist>
+                      <button type="button" class="btn-add-product" id="btnAddProductRow" title="Adicionar mais um produto">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="12" y1="5" x2="12" y2="19"></line>
+                          <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                  <span class="field-feedback"></span>
+                  <!-- 3. Preço* -->
+                  <div class="form-row" id="row-preco-0">
+                    <label for="inputPreco_0" class="form-label">
+                      Preço<span class="required-star">*</span>
+                    </label>
+                    <div class="input-wrapper">
+                      <div class="prefix-input">
+                        <span class="currency-prefix">R$</span>
+                        <input type="tel" id="inputPreco_0" name="preco" class="form-input input-preco" placeholder="0,00" required oninput="formatCurrencyInput(this)">
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -269,8 +274,8 @@
                 <label for="inputPagamento" class="form-label">
                   Pagamento
                 </label>
-                <div class="input-wrapper">
-                  <input type="text" id="inputPagamento" name="pagamento" class="form-input" placeholder="Ex: Pix, Cartão 3x, Dinheiro" list="pagamentosDatalist">
+                <div class="input-wrapper" style="display: flex; gap: 8px;">
+                  <input type="text" id="inputPagamento" name="pagamento" class="form-input" placeholder="Ex: Pix, Cartão, Dinheiro" list="pagamentosDatalist" oninput="if(this.value.toLowerCase().includes('crédito')) { document.getElementById('inputParcelas').style.display = 'block'; } else { document.getElementById('inputParcelas').style.display = 'none'; document.getElementById('inputParcelas').value = ''; }">
                   <datalist id="pagamentosDatalist">
                     <option value="Pix">
                     <option value="Cartão de Crédito">
@@ -279,6 +284,7 @@
                     <option value="Boleto Bancário">
                     <option value="Transferência">
                   </datalist>
+                  <input type="text" id="inputParcelas" name="parcelas" class="form-input" placeholder="Parcelas (ex: 3x)" style="display: none; width: 120px;">
                 </div>
               </div>
 
