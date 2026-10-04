@@ -1298,6 +1298,34 @@ function getFilteredSales() {
     }
 
     return true;
+  }).sort((a, b) => {
+    // Ordenar da mais recente para a mais antiga (decrescente)
+    const getSaleTimestamp = (item) => {
+      if (item.timestamp && typeof item.timestamp === 'number' && !isNaN(item.timestamp)) {
+        return item.timestamp;
+      }
+      if (item.timestamp) {
+        const parsed = Number(item.timestamp);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+      // Tentar converter de dateString ou data_entrega (ex: DD/MM/AAAA ou DD/MM/AAAA HH:mm)
+      const rawDate = item.dateString || item.data_entrega || '';
+      if (rawDate) {
+        const parts = rawDate.split(/[\/\s:-]/);
+        if (parts.length >= 3) {
+          const day = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1;
+          const year = parseInt(parts[2], 10) < 100 ? 2000 + parseInt(parts[2], 10) : parseInt(parts[2], 10);
+          const hour = parts[3] ? parseInt(parts[3], 10) : 0;
+          const min = parts[4] ? parseInt(parts[4], 10) : 0;
+          const d = new Date(year, month, day, hour, min);
+          if (!isNaN(d.getTime())) return d.getTime();
+        }
+      }
+      return 0;
+    };
+
+    return getSaleTimestamp(b) - getSaleTimestamp(a);
   });
 }
 
