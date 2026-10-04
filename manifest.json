@@ -1,0 +1,16 @@
+{
+  "name": "Vendas JBC",
+  "short_name": "Vendas JBC",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#10b981",
+  "description": "Aplicativo de celular para registro e gestão de vendas com compartilhamento no WhatsApp.",
+  "icons": [
+    {
+      "src": "icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#10b981">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Aplicativo de celular para registro e gestão de vendas com compartilhamento direto no WhatsApp.">
+  <title>Vendas JBC</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/jpeg" href="icon.jpg">
+  <link rel="apple-touch-icon" href="icon.jpg">
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- PDF Generation Libraries (jsPDF + html2canvas) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Background decorative elements for desktop view -->
+  <div class="bg-canvas">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+  </div>
+
+  <!-- Desktop Top Utility Bar -->
+  <header class="desktop-bar">
+    <div class="desktop-brand">
+      <img src="icon.jpg" alt="Logo" class="desktop-logo">
+      <div class="desktop-title-wrap">
+        <h2>Vendas JBC</h2>
+        <span class="desktop-badge">Simulador & App Web</span>
+      </div>
+    </div>
+    
+    <div class="desktop-actions">
+      <button id="toggleDeviceFrameBtn" class="pill-btn" title="Alternar entre moldura de celular e tela cheia">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="5" y="2" width="14" height="20" rx="3"></rect>
+          <line x1="12" y1="18" x2="12.01" y2="18"></line>
+        </svg>
+        <span id="frameModeText">Moldura Celular</span>
+      </button>
+
+      <button id="toggleThemeBtn" class="icon-circle-btn" title="Alternar Modo Escuro / Claro">
+        <svg class="sun-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile Frame Container (Wrapper) -->
+  <main class="mobile-viewport-wrapper">
+    <div class="smartphone-frame" id="smartphoneFrame">
+      
+
+
+      <!-- App Header / Tabs (Vendas | Produtos | Configurações) as required -->
+      <nav class="app-top-nav" aria-label="Navegação Principal">
+        <div class="tabs-container">
+          <button class="nav-tab-btn active" id="tabBtnVendas" data-target="tab-vendas">
+            <span>Vendas</span>
+          </button>
+          
+          <button class="nav-tab-btn" id="tabBtnProdutos" data-target="tab-produtos">
+            <span>Produtos</span>
+          </button>
+          
+          <button class="nav-tab-btn" id="tabBtnConfig" data-target="tab-configuracoes">
+            <span class="tab-text-icon">
+              Configurações
+              <svg class="gear-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </nav>
+
+      <!-- App Main Content Area -->
+      <div class="app-body-content" id="appBodyContent">
+
+        <!-- ============================================== -->
+        <!-- ABA 1: VENDAS (REGISTRO E HISTÓRICO)          -->
+        <!-- ============================================== -->
+        <section class="tab-pane active" id="tab-vendas">
+          
+          <!-- Sub-header switcher: Novo Registro vs Histórico -->
+          <div class="sales-subnav">
+            <button class="subnav-pill active" id="subnavFormBtn">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+              Novo Registro
+            </button>
+            <button class="subnav-pill" id="subnavListBtn">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+              Histórico (<span id="salesCounter">0</span>)
+            </button>
+          </div>
+
+          <!-- FORMULÁRIO DE REGISTRO DE VENDA (CONFORME IMAGEM DO USUÁRIO) -->
+          <div class="sales-form-container" id="salesFormSection">
+            <div class="form-card-banner">
+              <div class="banner-info">
+                <h3>Registro de Venda</h3>
+              </div>
+              <button type="button" class="btn-clean-ghost" id="btnClearForm" title="Limpar formulário">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                </svg>
+                Limpar
+              </button>
+            </div>
+
+            <form id="salesForm" novalidate autocomplete="off">
+              
+              <!-- 1. Vendedor* -->
+              <div class="form-row" id="row-vendedor">
+                <label for="inputVendedor" class="form-label">
+                  Vendedor<span class="required-star">*</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="inputVendedor" name="vendedor" class="form-input" placeholder="Ex: Junior, Alexandre..." list="vendedoresDatalist" onfocus="this.dataset.oldValue=this.value; this.value=''" onblur="if(this.value==='') this.value=this.dataset.oldValue" required>
+                  <datalist id="vendedoresDatalist">
+                    <!-- Populated dynamically with Junior, Alexandre, Jeremias, Allyson, Johnathan -->
+                  </datalist>
+                  <span class="field-feedback"></span>
+                </div>
+              </div>
+
+              <!-- CONTAINER DE PRODUTOS -->
+              <div id="productsContainer">
+                <!-- 2. Produto* -->
+                <div class="product-entry" data-index="0">
+                  <div class="form-row" id="row-produto-0">
+                    <label for="inputProduto_0" class="form-label">
+                      Produto<span class="required-star">*</span>
+                    </label>
+                    <div class="input-wrapper" style="display: flex; gap: 8px; align-items: center;">
+                      <input type="text" id="inputProduto_0" name="produto" class="form-input input-produto" placeholder="Ex: Tênis Air Max" list="produtosDatalist" required>
+                      <datalist id="produtosDatalist"></datalist>
+                      <button type="button" class="btn-add-product" id="btnAddProductRow" title="Adicionar mais um produto">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="12" y1="5" x2="12" y2="19"></line>
+                          <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <!-- 3. Preço* -->
+                  <div class="form-row" id="row-preco-0">
+                    <label for="inputPreco_0" class="form-label">
+                      Preço<span class="required-star">*</span>
+                    </label>
+                    <div class="input-wrapper">
+                      <div class="prefix-input">
+                        <span class="currency-prefix">R$</span>
+                        <input type="tel" id="inputPreco_0" name="preco" class="form-input input-preco" placeholder="0,00" required oninput="formatCurrencyInput(this)">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4. Cliente -->
+              <div class="form-row" id="row-cliente">
+                <label for="inputCliente" class="form-label">
+                  Cliente
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="inputCliente" name="cliente" class="form-input" placeholder="Ex: Maria Fernandes ou 104">
+                </div>
+              </div>
+
+              <!-- 5. Contato -->
+              <div class="form-row" id="row-contato">
+                <label for="inputContato" class="form-label">
+                  Contato
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="inputContato" name="contato" class="form-input" placeholder="Ex: (11) 98765-4321 ou @maria">
+                </div>
+              </div>
+
+              <!-- CEP -->
+              <div class="form-row" id="row-cep">
+                <label for="inputCEP" class="form-label">
+                  CEP
+                </label>
+                <div class="input-wrapper">
+                  <input type="tel" id="inputCEP" name="cep" class="form-input" placeholder="Ex: 01001-000" oninput="window.formatAndSearchCEP(this)" maxlength="9">
+                </div>
+              </div>
+
+              <!-- 6. Endereço -->
+              <div class="form-row" id="row-endereco">
+                <label for="inputEndereco" class="form-label">
+                  Endereço
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="inputEndereco" name="endereco" class="form-input" placeholder="Ex: Rua das Flores, 123 - Apto 4" rows="2" style="resize: none;"></textarea>
+                </div>
+              </div>
+
+              <!-- 7. Frete -->
+              <div class="form-row" id="row-frete">
+                <label for="inputFrete" class="form-label">
+                  Frete
+                </label>
+                <div class="input-wrapper">
+                  <div class="prefix-input">
+                    <span class="currency-prefix">R$</span>
+                    <input type="tel" id="inputFrete" name="frete" class="form-input" placeholder="0,00" oninput="formatCurrencyInput(this)">
+                  </div>
+                </div>
+              </div>
+
+              <!-- 8. Pagamento -->
+              <div class="form-row" id="row-pagamento">
+                <label for="inputPagamento" class="form-label">
+                  Pagamento
+                </label>
+                <div class="input-wrapper" style="display: flex; gap: 8px;">
+                  <input type="text" id="inputPagamento" name="pagamento" class="form-input" placeholder="Ex: Pix, Cartão, Dinheiro" list="pagamentosDatalist" oninput="if(this.value.toLowerCase().includes('crédito')) { document.getElementById('inputParcelas').style.display = 'block'; } else { document.getElementById('inputParcelas').style.display = 'none'; document.getElementById('inputParcelas').value = ''; }">
+                  <datalist id="pagamentosDatalist">
+                    <option value="Pix">
+                    <option value="Cartão de Crédito">
+                    <option value="Cartão de Débito">
+                    <option value="Dinheiro">
+                    <option value="Boleto Bancário">
+                    <option value="Transferência">
+                  </datalist>
+                  <input type="text" id="inputParcelas" name="parcelas" class="form-input" placeholder="Parcelas (ex: 3x)" style="display: none; width: 120px;">
+                </div>
+              </div>
+
+              <!-- Total -->
+              <div class="form-row" id="row-total">
+                <label for="inputTotal" class="form-label">
+                  Total
+                </label>
+                <div class="input-wrapper">
+                  <div class="prefix-input">
+                    <span class="currency-prefix">R$</span>
+                    <input type="tel" id="inputTotal" name="total" class="form-input" placeholder="0,00" oninput="formatCurrencyInput(this)">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Data da Entrega -->
+              <div class="form-row" id="row-data-entrega">
+                <label for="inputDataEntrega" class="form-label">
+                  Data da Entrega
+                </label>
+                <div class="input-wrapper">
+                  <input type="date" id="inputDataEntrega" name="data_entrega" class="form-input">
+                </div>
+              </div>
+
+              <!-- 9. Observação -->
+              <div class="form-row" id="row-observacao">
+                <label for="inputObservacao" class="form-label">
+                  Observação
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="inputObservacao" name="observacao" class="form-input" placeholder="Ex: Entregar à tarde, embalar para presente">
+                </div>
+              </div>
+
+              <!-- 10. Comissão -->
+              <div class="form-row" id="row-comissao">
+                <label for="inputComissao" class="form-label">
+                  Comissão
+                </label>
+                <div class="input-wrapper">
+                  <div class="prefix-input">
+                    <span class="currency-prefix">R$</span>
+                    <input type="tel" id="inputComissao" name="comissao" class="form-input" placeholder="0,00" oninput="formatCurrencyInput(this)">
+                  </div>
+                </div>
+              </div>
+
+              <!-- 11. Lucro -->
+              <div class="form-row" id="row-lucro">
+                <label for="inputLucro" class="form-label">
+                  Lucro
+                </label>
+                <div class="input-wrapper">
+                  <div class="prefix-input">
+                    <span class="currency-prefix">R$</span>
+                    <input type="text" id="inputLucro" name="lucro" class="form-input" placeholder="0,00" readonly>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Opção: Enviar Garantia (Estilo Simples Conforme Imagem) -->
+              <div class="simple-garantia-row">
+                <label class="simple-checkbox-label" for="checkEnviarGarantia">
+                  <input type="checkbox" id="checkEnviarGarantia" name="enviarGarantia" class="simple-checkbox-input">
+                  <span class="simple-checkbox-text">Enviar Garantia</span>
+                </label>
+              </div>
+
+              <!-- CPF do Cliente (Aparece somente quando Enviar Garantia estiver marcado) -->
+              <div class="form-row" id="row-documento" style="display: none;">
+                <label for="inputDocumento" class="form-label">
+                  CPF
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="inputDocumento" name="documento" class="form-input" placeholder="000.000.000-00" maxlength="18">
+                </div>
+              </div>
+
+              <!-- Botões de Ação do Formulário -->
+              <div class="form-actions-bar">
+                <button type="submit" class="btn-primary-save" id="btnSalvarVenda">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M20 6L9 17l-5-5"/>
+                  </svg>
+                  Salvar Registro de Venda
+                </button>
+
+                <button type="button" class="btn-secondary-whatsapp" id="btnApenasWhatsapp">
+                  <svg viewBox="0 0 32 32" width="18" height="18" fill="#25d366">
+                    <path d="M16 2.05c-7.7 0-13.95 6.25-13.95 13.95 0 2.47.65 4.87 1.88 7L2 30l7.21-1.89c2.06 1.12 4.38 1.71 6.79 1.71 7.7 0 13.95-6.25 13.95-13.95S23.7 2.05 16 2.05zm0 25.56c-2.12 0-4.18-.57-5.99-1.64l-.43-.25-4.45 1.17 1.19-4.34-.28-.44c-1.18-1.87-1.8-4.04-1.8-6.26 0-6.4 5.21-11.6 11.6-11.6 6.4 0 11.6 5.21 11.6 11.6 0 6.39-5.21 11.6-11.6 11.6zm6.36-8.69c-.35-.18-2.07-1.02-2.39-1.14-.32-.12-.55-.18-.78.18-.23.35-.9 1.14-1.1 1.38-.2.23-.41.26-.76.09-.35-.18-1.48-.55-2.82-1.74-1.04-.93-1.75-2.08-1.95-2.43-.2-.35-.02-.54.15-.71.16-.16.35-.41.52-.61.18-.2.23-.35.35-.58.12-.23.06-.44-.03-.61-.09-.18-.78-1.88-1.07-2.58-.28-.68-.57-.59-.78-.6-.2-.01-.44-.01-.67-.01-.23 0-.61.09-.93.44-.32.35-1.22 1.19-1.22 2.9 0 1.71 1.25 3.37 1.42 3.6.18.23 2.46 3.76 5.96 5.27.83.36 1.48.58 1.99.74.84.27 1.6.23 2.21.14.67-.1 2.07-.85 2.36-1.66.29-.82.29-1.52.2-1.66-.09-.15-.32-.24-.67-.41z"/>
+                  </svg>
+                  <span>Apenas Enviar Registro</span>
+                </button>
+              </div>
+
+            </form>
+          </div>
+
+          <!-- HISTÓRICO DE VENDAS (SUB-ABA) -->
+          <div class="sales-history-container" id="salesHistorySection" style="display: none;">
+            
+            <!-- Top Action Header: Relatório de Vendas com Botão Ver Detalhes alinhado -->
+            <div class="history-top-action-bar">
+              <div class="history-title-group">
+                <h4>Relatório de Vendas</h4>
+              </div>
+              <button type="button" class="btn-toggle-perf-header" id="btnTogglePerfTable" title="Ver detalhes do desempenho dos vendedores">
+                <span id="perfToggleText">Ver Detalhes</span>
+                <svg id="perfArrowIcon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Date Filter Presets & Controls -->
+            <div class="history-date-filter-box">
+              <div class="date-presets-nav">
+                <button type="button" class="date-preset-pill active" data-range="all">Todos</button>
+                <button type="button" class="date-preset-pill" data-range="today">Hoje</button>
+                <button type="button" class="date-preset-pill" data-range="week">7 Dias</button>
+                <button type="button" class="date-preset-pill" data-range="month">Este Mês</button>
+                <button type="button" class="date-preset-pill" data-range="custom">Personalizado</button>
+              </div>
+
+              <!-- Custom Date Range (hidden by default) -->
+              <div class="custom-date-row" id="customDateContainer" style="display: none;">
+                <div class="date-input-group">
+                  <label for="filterDateStart">De:</label>
+                  <input type="date" id="filterDateStart" class="date-picker-input">
+                </div>
+                <div class="date-input-group">
+                  <label for="filterDateEnd">Até:</label>
+                  <input type="date" id="filterDateEnd" class="date-picker-input">
+                </div>
+                <button type="button" class="btn-apply-date" id="btnApplyDateFilter">Filtrar</button>
+                <button type="button" class="btn-clear-date" id="btnClearDateFilter" title="Limpar filtro de data">&times;</button>
+              </div>
+            </div>
+
+            <!-- KPI Summary Cards (4 Cards) - Visíveis dentro de Ver Detalhes ou ocultos por padrão -->
+            <div class="seller-performance-card" id="sellerPerformanceCard" style="display: none;">
+              <div class="kpi-cards-grid four-kpis" style="margin-bottom: 12px;">
+                <div class="kpi-card">
+                  <span class="kpi-label">Vendas</span>
+                  <span class="kpi-value" id="kpiTotalVendas">0</span>
+                </div>
+                <div class="kpi-card highlight-green">
+                  <span class="kpi-label">Faturamento</span>
+                  <span class="kpi-value" id="kpiFaturamento">R$ 0,00</span>
+                </div>
+                <div class="kpi-card highlight-amber">
+                  <span class="kpi-label">Comissões</span>
+                  <span class="kpi-value" id="kpiComissao">R$ 0,00</span>
+                </div>
+                <div class="kpi-card highlight-blue">
+                  <span class="kpi-label">Lucro Loja</span>
+                  <span class="kpi-value" id="kpiLucro">R$ 0,00</span>
+                </div>
+              </div>
+
+              <!-- Detailed Table (Ranking dos Vendedores) -->
+              <div class="seller-perf-table-wrap">
+                <table class="seller-perf-table">
+                  <thead>
+                    <tr>
+                      <th>Vendedor</th>
+                      <th>Vendas</th>
+                      <th>Faturamento</th>
+                      <th>Comissão</th>
+                      <th>Lucro</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sellerPerfTableBody">
+                    <!-- Injected via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Search & Seller Filter Bar -->
+            <div class="history-filter-bar">
+              <div class="search-input-box">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="historySearchInput" placeholder="Buscar produto, cliente...">
+              </div>
+
+              <div class="seller-filter-select-wrap">
+                <select id="filterSellerSelect" class="seller-select-filter">
+                  <option value="all">Todos os Vendedores</option>
+                  <!-- Populated dynamically with Junior, Alexandre, Jeremias, Allyson, Johnathan -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Active filter badge feedback -->
+            <div class="active-filter-indicator" id="activeFilterIndicator" style="display: none;">
+              <span id="activeFilterText">Filtrando por: ...</span>
+              <button type="button" id="btnClearAllFilters" class="btn-clear-pill">Limpar Filtros</button>
+            </div>
+
+            <!-- List of Sales -->
+            <div class="sales-list" id="salesList">
+              <!-- Dynamically rendered -->
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ============================================== -->
+        <!-- ABA 2: PRODUTOS                               -->
+        <!-- ============================================== -->
+        <section class="tab-pane" id="tab-produtos">
+          <div class="products-container">
+            
+            <div class="section-hero">
+              <div class="hero-text">
+                <h3>Catálogo de Produtos</h3>
+                <p>Cadastre seus produtos para preenchimento rápido nas vendas.</p>
+              </div>
+              <div class="hero-actions-group">
+                <button type="button" class="btn-secondary-sm" id="btnOpenBulkImport" title="Importar produtos em massa por planilha Excel/CSV">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                  </svg>
+                  Importar Planilha
+                </button>
+                <button type="button" class="btn-accent-sm" id="btnToggleNewProduct" title="Cadastrar produto individualmente">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  Novo
+                </button>
+              </div>
+            </div>
+
+            <!-- Form to Add/Edit Product (collapsible) -->
+            <div class="new-product-card" id="newProductCard" style="display: none;">
+              <h4 id="productFormTitle">Cadastrar Novo Produto</h4>
+              <form id="productForm">
+                <input type="hidden" id="editProductId" value="">
+                
+                <div class="input-group">
+                  <label for="prodName">Nome do Produto*</label>
+                  <input type="text" id="prodName" required placeholder="Ex: Fone Bluetooth Pro Max">
+                </div>
+
+                <div class="grid-2-inputs">
+                  <div class="input-group">
+                    <label for="prodPrice">Preço Venda (R$)*</label>
+                    <input type="text" id="prodPrice" required placeholder="Ex: 120,00">
+                  </div>
+                  <div class="input-group">
+                    <label for="prodCost">Custo (R$)</label>
+                    <input type="text" id="prodCost" placeholder="Ex: 50,00">
+                  </div>
+                </div>
+
+                <div class="grid-2-inputs">
+                  <div class="input-group">
+                    <label for="prodBasePrice">Preço Base (R$)*</label>
+                    <input type="text" id="prodBasePrice" required placeholder="Ex: 80,00" title="Usado para calcular Comissão = Preço - Preço Base e Lucro = Preço Base - Custo">
+                  </div>
+                  <div class="input-group">
+                    <label for="prodCategory">Categoria</label>
+                    <input type="text" id="prodCategory" placeholder="Ex: Eletrônicos">
+                  </div>
+                </div>
+
+                <div class="product-form-buttons">
+                  <button type="button" class="btn-cancel" id="btnCancelProduct">Cancelar</button>
+                  <button type="submit" class="btn-save-prod">Salvar Produto</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Search & Filter bar for products -->
+            <div class="search-input-box mb-2">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="productSearchInput" placeholder="Pesquisar produto no catálogo...">
+            </div>
+
+            <!-- Quick tools bar for products spreadsheet -->
+            <div class="product-quick-tools-bar mb-3">
+              <span class="catalog-count-badge" id="catalogCountBadge">0 produtos</span>
+              <div class="tools-actions-flex">
+                <button type="button" class="btn-ghost-sm" id="btnDownloadTemplate" title="Baixar modelo de planilha pronto para preenchimento">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  Modelo Planilha
+                </button>
+                <button type="button" class="btn-ghost-sm" id="btnSyncProductsSheetQuick" title="Sincronizar produtos com o Google Sheets">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                  </svg>
+                  Sincronizar Nuvem
+                </button>
+                <button type="button" class="btn-ghost-sm" id="btnExportProductsCSV" title="Exportar catálogo atual para planilha Excel">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  Exportar CSV
+                </button>
+              </div>
+            </div>
+
+            <!-- Product cards list -->
+            <div class="products-list-grid" id="productsListGrid">
+              <!-- Rendered via JS -->
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- ABA 3: CONFIGURAÇÕES (ENGRENAGEM)            -->
+        <!-- ============================================== -->
+        <section class="tab-pane" id="tab-configuracoes">
+          <div class="settings-container">
+            
+            <div class="section-hero">
+              <div class="hero-text">
+                <h3>Configurações do Aplicativo</h3>
+                <p>Personalize valores padrão, WhatsApp e gerenciamento de dados.</p>
+              </div>
+            </div>
+
+            <!-- Config Form -->
+            <div class="settings-card">
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label for="cfgVendedorPadraoSelect">Vendedor Padrão</label>
+                  <span>Preenche automaticamente ao iniciar uma nova venda</span>
+                </div>
+                <select id="cfgVendedorPadraoSelect" class="cfg-select">
+                  <!-- Populated dynamically with Junior, Alexandre, Jeremias, Allyson, Johnathan -->
+                </select>
+              </div>
+
+              <input type="hidden" id="cfgComissaoPadrao" value="10">
+              <input type="hidden" id="cfgWhatsTelefone" value="">
+
+              <button type="button" class="btn-primary-save mt-3" id="btnSalvarConfig">
+                Salvar Configuração Básica
+              </button>
+            </div>
+
+            <!-- GESTÃO DE VENDEDORES (CRIAR E EDITAR VENDEDORES) -->
+            <div class="settings-card mt-3" id="sellersManagementCard">
+              <div class="section-hero mb-2">
+                <div class="hero-text">
+                  <h4>👥 Equipe de Vendedores</h4>
+                  <p class="text-muted">Cadastre, edite e gerencie os vendedores da sua loja.</p>
+                </div>
+                <button type="button" class="btn-accent-sm" id="btnToggleNewSeller">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  Novo Vendedor
+                </button>
+              </div>
+
+              <!-- Form to Add / Edit Seller (collapsible) -->
+              <div class="seller-edit-form-card" id="sellerFormCard" style="display: none;">
+                <h5 id="sellerFormTitle">Cadastrar Novo Vendedor</h5>
+                <form id="sellerForm">
+                  <input type="hidden" id="editSellerId" value="">
+                  
+                  <div class="input-group">
+                    <label for="sellerNameInput">Nome do Vendedor*</label>
+                    <input type="text" id="sellerNameInput" required placeholder="Ex: Junior">
+                  </div>
+
+                  <div class="input-group">
+                    <label for="sellerPhoneInput">Telefone / WhatsApp (Opcional)</label>
+                    <input type="text" id="sellerPhoneInput" placeholder="Ex: (11) 98888-7777">
+                  </div>
+
+                  <div class="seller-form-actions">
+                    <button type="button" class="btn-cancel" id="btnCancelSeller">Cancelar</button>
+                    <button type="submit" class="btn-save-prod">Salvar Vendedor</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Sellers List Cards Container -->
+              <div class="sellers-list-container" id="sellersListContainer">
+                <!-- Dynamically rendered (Junior, Alexandre, Jeremias, Allyson, Johnathan...) -->
+              </div>
+            </div>
+
+            <button type="button" class="btn-outline-sm mt-3" id="btnToggleAdvanced" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px;" onclick="document.getElementById('advancedSettingsWrap').style.display = document.getElementById('advancedSettingsWrap').style.display === 'none' ? 'block' : 'none'">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"></path>
+              </svg>
+              Configurações Avançadas
+            </button>
+
+            <!-- Wrap avançado -->
+            <div id="advancedSettingsWrap" style="display: none;">
+            
+              <div class="settings-card mt-3">
+                <div class="setting-item vertical">
+                  <div class="setting-info">
+                    <label for="cfgWhatsMsg">Modelo de Mensagem WhatsApp</label>
+                    <span>Variáveis: {vendedor}, {produto}, {preco}, {cliente}, {contato}, {endereco}, {frete}, {pagamento}, {obs}, {comissao}, {lucro}, {data}, {total}, {data_entrega}</span>
+                  </div>
+                  <textarea id="cfgWhatsMsg" rows="6" class="cfg-textarea"></textarea>
+                  <button type="button" class="btn-outline-sm mt-2" id="btnResetTemplate">Restaurar Modelo Original</button>
+                  <button type="button" class="btn-primary-save mt-3" onclick="document.getElementById('btnSalvarConfig').click()">Salvar Modelo</button>
+                </div>
+              </div>
+
+            <!-- Central do Banco de Dados & Armazenamento -->
+            <div class="settings-card mt-3" id="databaseInfoCard">
+              <div class="db-header-row">
+                <div>
+                  <h4>📦 Banco de Dados & Armazenamento</h4>
+                  <p class="text-muted">Onde e como os seus dados ficam salvos.</p>
+                </div>
+                <span class="db-status-pill online">
+                  <span class="pulse-dot"></span>
+                  Local Ativo
+                </span>
+              </div>
+
+              <!-- Storage Metrics Grid -->
+              <div class="db-metrics-grid">
+                <div class="db-metric-box">
+                  <span class="metric-num" id="dbSalesCount">0</span>
+                  <span class="metric-title">Vendas Salvas</span>
+                </div>
+                <div class="db-metric-box">
+                  <span class="metric-num" id="dbProductsCount">0</span>
+                  <span class="metric-title">Produtos Cadastrados</span>
+                </div>
+                <div class="db-metric-box">
+                  <span class="metric-num" id="dbStorageBytes">0 KB</span>
+                  <span class="metric-title">Espaço Utilizado</span>
+                </div>
+              </div>
+
+              <!-- Explanation accordion/box -->
+              <div class="db-info-callout">
+                <div class="callout-icon">💾</div>
+                <div class="callout-content">
+                  <strong>Onde ficam salvas as vendas?</strong>
+                  <p>Ficam salvas no <strong>Armazenamento Local Persistente do Navegador/Celular (WebStorage / IndexedDB)</strong>. Isso significa que:</p>
+                  <ul>
+                    <li>✅ <strong>100% Offline:</strong> Você pode registrar vendas sem precisar de conexão com a internet.</li>
+                    <li>✅ <strong>Privacidade Total:</strong> Seus dados não vão para servidores de terceiros.</li>
+                    <li>✅ <strong>Não Apaga:</strong> Ficam guardados mesmo fechando o navegador ou desligando o celular.</li>
+                    <li>⚠️ <strong>Multi-aparelhos:</strong> Como os dados ficam no dispositivo, para usar em vários celulares simultâneos você pode sincronizar via Planilha Google ou Nuvem.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- GOOGLE SHEETS CLOUD DATABASE INTEGRATION -->
+              <div class="google-sheets-card-wrap mt-3" id="googleSheetsCard">
+                <div class="db-header-row">
+                  <div>
+                    <h4>📊 Banco de Dados Google Sheets (Nuvem 24h)</h4>
+                    <p class="text-muted">Conecte sua planilha Google para salvar vendas e produtos automaticamente na nuvem.</p>
+                  </div>
+                  <span class="db-status-pill offline" id="sheetStatusPill">
+                    <span class="pulse-dot" id="sheetStatusDot"></span>
+                    <span id="sheetStatusText">Desconectado</span>
+                  </span>
+                </div>
+
+                <div class="setting-item vertical mt-2">
+                  <div class="setting-info">
+                    <label for="cfgGoogleSheetUrl">URL do Web App do Google Apps Script</label>
+                    <span>Cole a URL gerada na sua planilha Google (menu Extensões ➔ Apps Script ➔ Implantar)</span>
+                  </div>
+                  <div class="flex-input-action">
+                    <input type="url" id="cfgGoogleSheetUrl" class="cfg-input flex-1" placeholder="https://script.google.com/macros/s/.../exec">
+                    <button type="button" class="btn-calc-mini" id="btnTestGoogleSheets">Testar</button>
+                  </div>
+                </div>
+
+                <div class="sheet-actions-row mt-2">
+                  <button type="button" class="btn-ghost-sm" id="btnSyncAllFromSheet" title="Baixar catálogo e vendas da planilha Google">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                    </svg>
+                    Baixar da Planilha
+                  </button>
+                  <button type="button" class="btn-ghost-sm" id="btnPushProductsToSheet" title="Enviar catálogo de produtos atual para a planilha Google">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    </svg>
+                    Gravar Produtos na Nuvem
+                  </button>
+                  <button type="button" class="btn-accent-sm" id="btnOpenScriptGuideModal" title="Ver código pronto e passo a passo para criar o Web App">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    Ver Passo a Passo & Código
+                  </button>
+                </div>
+
+                <div class="sheet-auto-sync-toggle mt-2">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="cfgAutoSyncSheet" checked>
+                    <span>Sincronizar vendas e produtos automaticamente em tempo real com a planilha</span>
+                  </label>
+                </div>
+              </div>
+
+              <h5 class="mt-3 mb-2" style="font-size: 13px; font-weight: 700;">Backups & Exportações</h5>
+              
+              <div class="settings-btn-grid">
+                <button type="button" class="btn-action-tile" id="btnExportCSV">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                  </svg>
+                  <span>Exportar Vendas CSV</span>
+                </button>
+
+                <button type="button" class="btn-action-tile" id="btnExportJSON">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  <span>Backup Completo (JSON)</span>
+                </button>
+                
+                <button type="button" class="btn-action-tile" id="btnLoadSampleData">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                  </svg>
+                  <span>Carregar Dados Demo</span>
+                </button>
+
+                <button type="button" class="btn-action-tile danger" id="btnClearAllData">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                  </svg>
+                  <span>Limpar Todos Dados</span>
+                </button>
+              </div>
+            </div>
+
+            </div> <!-- /advancedSettingsWrap -->
+
+            <!-- Sobre o App -->
+            <div class="app-version-footer">
+              <img src="icon.jpg" alt="Logo" class="mini-app-icon">
+              <div>
+                <strong>Vendas JBC v2.0</strong>
+                <p>Pronto para uso móvel e compartilhamento instantâneo via WhatsApp</p>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div> <!-- /app-body-content -->
+
+
+
+      <!-- Phone Bottom Gesture Home Bar -->
+      <div class="phone-home-indicator">
+        <div class="home-bar"></div>
+      </div>
+
+    </div> <!-- /smartphone-frame -->
+  </main>
+
+  <!-- ============================================== -->
+  <!-- MODAL / BOTTOM SHEET: COMPARTILHAR WHATSAPP    -->
+  <!-- ============================================== -->
+  <div class="modal-backdrop" id="whatsappModalBackdrop" style="display: none;">
+    <div class="bottom-sheet" id="whatsappBottomSheet" role="dialog" aria-modal="true" aria-labelledby="modalSheetTitle">
+      <div class="sheet-drag-handle"></div>
+      
+      <div class="sheet-header">
+        <div class="sheet-title-group">
+          <div class="whatsapp-badge-icon">
+            <svg viewBox="0 0 32 32" width="22" height="22" fill="#fff">
+              <path d="M16 2.05c-7.7 0-13.95 6.25-13.95 13.95 0 2.47.65 4.87 1.88 7L2 30l7.21-1.89c2.06 1.12 4.38 1.71 6.79 1.71 7.7 0 13.95-6.25 13.95-13.95S23.7 2.05 16 2.05zm0 25.56c-2.12 0-4.18-.57-5.99-1.64l-.43-.25-4.45 1.17 1.19-4.34-.28-.44c-1.18-1.87-1.8-4.04-1.8-6.26 0-6.4 5.21-11.6 11.6-11.6 6.4 0 11.6 5.21 11.6 11.6 0 6.39-5.21 11.6-11.6 11.6zm6.36-8.69c-.35-.18-2.07-1.02-2.39-1.14-.32-.12-.55-.18-.78.18-.23.35-.9 1.14-1.1 1.38-.2.23-.41.26-.76.09-.35-.18-1.48-.55-2.82-1.74-1.04-.93-1.75-2.08-1.95-2.43-.2-.35-.02-.54.15-.71.16-.16.35-.41.52-.61.18-.2.23-.35.35-.58.12-.23.06-.44-.03-.61-.09-.18-.78-1.88-1.07-2.58-.28-.68-.57-.59-.78-.6-.2-.01-.44-.01-.67-.01-.23 0-.61.09-.93.44-.32.35-1.22 1.19-1.22 2.9 0 1.71 1.25 3.37 1.42 3.6.18.23 2.46 3.76 5.96 5.27.83.36 1.48.58 1.99.74.84.27 1.6.23 2.21.14.67-.1 2.07-.85 2.36-1.66.29-.82.29-1.52.2-1.66-.09-.15-.32-.24-.67-.41z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 id="modalSheetTitle">Compartilhar no WhatsApp</h3>
+          </div>
+        </div>
+        <button class="sheet-close-btn" id="btnCloseWhatsappModal" aria-label="Fechar">
+          &times;
+        </button>
+      </div>
+
+      <div class="sheet-body">
+        
+        <!-- WhatsApp Chat Balloon Message Preview -->
+        <div class="chat-preview-box">
+          <div class="chat-bubble">
+            <pre id="whatsappMessagePreview" class="chat-message-text"></pre>
+            <div class="chat-meta">
+              <span id="chatMessageTime">12:30</span>
+              <svg viewBox="0 0 16 15" width="16" height="15" fill="#4fc3f7">
+                <path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.879a.32.32 0 0 1-.484.033l-.358-.325a.319.319 0 0 0-.484.032l-.378.483a.418.418 0 0 0 .036.541l1.32 1.266c.143.14.361.125.484-.033l6.272-8.055a.366.366 0 0 0-.064-.51z"/>
+                <path d="M11.96 3.316l-.478-.372a.365.365 0 0 0-.51.063L5.616 9.879a.32.32 0 0 1-.484.033l-2.03-1.84a.364.364 0 0 0-.505.021l-.394.409a.418.418 0 0 0 .02.57l2.84 2.576c.143.14.361.125.484-.033l6.272-8.055a.366.366 0 0 0-.064-.51z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Banner de Garantia anexada / disponível -->
+        <div class="garantia-modal-attachment" id="garantiaModalAttachment" style="display: none;">
+          <div class="attachment-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <div class="attachment-info">
+            <span class="attachment-title">Garantia</span>
+          </div>
+          <div class="attachment-actions-group">
+            <button type="button" class="btn-icon-action" id="btnPreviewGarantiaModal" title="Visualizar Garantia / Abrir PDF">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+            <button type="button" class="btn-icon-action" id="btnSendGarantiaDirectModal" title="Enviar Garantia no WhatsApp">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="sheet-action-buttons">
+          <button type="button" class="btn-whatsapp-send" id="btnSendWhatsappDirect">
+            <svg viewBox="0 0 32 32" width="22" height="22" fill="#fff">
+              <path d="M16 2.05c-7.7 0-13.95 6.25-13.95 13.95 0 2.47.65 4.87 1.88 7L2 30l7.21-1.89c2.06 1.12 4.38 1.71 6.79 1.71 7.7 0 13.95-6.25 13.95-13.95S23.7 2.05 16 2.05zm0 25.56c-2.12 0-4.18-.57-5.99-1.64l-.43-.25-4.45 1.17 1.19-4.34-.28-.44c-1.18-1.87-1.8-4.04-1.8-6.26 0-6.4 5.21-11.6 11.6-11.6 6.4 0 11.6 5.21 11.6 11.6 0 6.39-5.21 11.6-11.6 11.6zm6.36-8.69c-.35-.18-2.07-1.02-2.39-1.14-.32-.12-.55-.18-.78.18-.23.35-.9 1.14-1.1 1.38-.2.23-.41.26-.76.09-.35-.18-1.48-.55-2.82-1.74-1.04-.93-1.75-2.08-1.95-2.43-.2-.35-.02-.54.15-.71.16-.16.35-.41.52-.61.18-.2.23-.35.35-.58.12-.23.06-.44-.03-.61-.09-.18-.78-1.88-1.07-2.58-.28-.68-.57-.59-.78-.6-.2-.01-.44-.01-.67-.01-.23 0-.61.09-.93.44-.32.35-1.22 1.19-1.22 2.9 0 1.71 1.25 3.37 1.42 3.6.18.23 2.46 3.76 5.96 5.27.83.36 1.48.58 1.99.74.84.27 1.6.23 2.21.14.67-.1 2.07-.85 2.36-1.66.29-.82.29-1.52.2-1.66-.09-.15-.32-.24-.67-.41z"/>
+            </svg>
+            <span id="btnSendWhatsappText">Enviar</span>
+          </button>
+
+          <button type="button" class="btn-copy-clipboard" id="btnCopyWhatsappMessage">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+            </svg>
+            Copiar Texto
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: IMPORTAR PRODUTOS EM MASSA POR PLANILHA -->
+  <!-- ============================================== -->
+  <div class="modal-backdrop" id="bulkImportModalBackdrop" style="display: none;">
+    <div class="bottom-sheet bulk-sheet" id="bulkImportBottomSheet" role="dialog" aria-modal="true" aria-labelledby="bulkModalTitle">
+      <div class="sheet-drag-handle"></div>
+      
+      <div class="sheet-header">
+        <div class="sheet-title-group">
+          <div class="bulk-badge-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="12" y1="18" x2="12" y2="12"></line>
+              <line x1="9" y1="15" x2="15" y2="15"></line>
+            </svg>
+          </div>
+          <div>
+            <h3 id="bulkModalTitle">Cadastro em Massa por Planilha</h3>
+            <p>Importe produtos via arquivo CSV/Excel ou copie e cole direto</p>
+          </div>
+        </div>
+        <button class="sheet-close-btn" id="btnCloseBulkModal" aria-label="Fechar">
+          &times;
+        </button>
+      </div>
+
+      <div class="sheet-body bulk-sheet-body">
+        
+        <!-- Tab switcher: Arquivo vs Colar -->
+        <div class="bulk-tabs-nav">
+          <button type="button" class="bulk-tab-btn active" id="tabUploadFileBtn">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Carregar Arquivo (.CSV)
+          </button>
+          
+          <button type="button" class="bulk-tab-btn" id="tabPasteTextBtn">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+            </svg>
+            Colar do Excel / Sheets
+          </button>
+        </div>
+
+        <!-- Section 1: Upload File -->
+        <div class="bulk-panel active" id="panelUploadFile">
+          <div class="file-dropzone" id="fileDropzone">
+            <input type="file" id="bulkCsvFileInput" accept=".csv,.tsv,.txt" style="display: none;">
+            <div class="dropzone-content">
+              <div class="drop-icon">
+                <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="var(--primary)" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="12" y1="18" x2="12" y2="12"></line>
+                  <line x1="9" y1="15" x2="15" y2="15"></line>
+                </svg>
+              </div>
+              <h4>Arraste o arquivo CSV da sua planilha aqui</h4>
+              <p>ou clique para selecionar do seu aparelho</p>
+              <span class="file-format-badge">Compatível com Excel, Google Sheets, Calc (.csv, .tsv)</span>
+            </div>
+          </div>
+          <div class="selected-file-info" id="selectedFileInfo" style="display: none;">
+            <span class="file-name" id="selectedFileName">planilha.csv</span>
+            <button type="button" class="btn-remove-file" id="btnRemoveFile">&times;</button>
+          </div>
+        </div>
+
+        <!-- Section 2: Paste from Clipboard -->
+        <div class="bulk-panel" id="panelPasteText" style="display: none;">
+          <div class="paste-input-container">
+            <label for="bulkPasteTextarea">Copie as linhas da sua planilha no Excel ou Google Sheets e cole abaixo:</label>
+            <textarea id="bulkPasteTextarea" rows="5" class="bulk-textarea" placeholder="Nome	Preço	Custo	Preço Base	Categoria
+Camiseta Lisa	49,90	20,00	35,00	Roupas
+Tênis Esportivo	189,00	80,00	130,00	Calçados"></textarea>
+            <button type="button" class="btn-secondary-sm mt-2" id="btnProcessPastedText">
+              Processar Linhas Coladas
+            </button>
+          </div>
+        </div>
+
+        <!-- Download sample spreadsheet banner -->
+        <div class="sample-template-banner">
+          <div class="banner-desc">
+            <strong>Precisa de um modelo pronto?</strong>
+            <span>Baixe nossa planilha de exemplo com as colunas certas.</span>
+          </div>
+          <button type="button" class="btn-outline-sm" id="btnDownloadSampleCSV">
+            Baixar Modelo .CSV
+          </button>
+        </div>
+
+        <!-- Preview Table of Detected Products -->
+        <div class="bulk-preview-section" id="bulkPreviewSection" style="display: none;">
+          <div class="preview-header-row">
+            <h4>Produtos Reconhecidos: <span id="parsedProductsCount" class="badge-count">0</span></h4>
+            <span class="text-muted text-xs">Revise antes de salvar</span>
+          </div>
+
+          <div class="table-scroll-wrap">
+            <table class="bulk-preview-table" id="bulkPreviewTable">
+              <thead>
+                <tr>
+                  <th>Nome*</th>
+                  <th>Preço*</th>
+                  <th>Custo</th>
+                  <th>Preço Base*</th>
+                  <th>Categoria</th>
+                </tr>
+              </thead>
+              <tbody id="bulkPreviewTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Import Mode Switcher -->
+          <div class="import-mode-selector">
+            <label class="radio-option">
+              <input type="radio" name="importMode" value="append" checked>
+              <span><strong>Adicionar aos produtos existentes</strong> (mantém os atuais e soma os novos)</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="importMode" value="replace">
+              <span><strong>Substituir catálogo inteiro</strong> (apaga os anteriores e coloca apenas os da planilha)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="bulk-action-footer">
+          <button type="button" class="btn-cancel" id="btnCancelBulkModal">Cancelar</button>
+          <button type="button" class="btn-primary-save" id="btnConfirmBulkImport" disabled>
+            Confirmar e Cadastrar no Catálogo
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: GUIA & CÓDIGO DO GOOGLE APPS SCRIPT -->
+  <div class="bottom-sheet-backdrop" id="appsScriptGuideModalBackdrop" style="display: none;">
+    <div class="bottom-sheet-modal" id="appsScriptGuideModal" style="max-height: 88vh; overflow-y: auto;">
+      <div class="sheet-drag-handle"></div>
+      
+      <div class="sheet-header">
+        <div class="sheet-title-group">
+          <div class="icon-bubble highlight-green">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <div>
+            <h3>Google Sheets como Banco 24h</h3>
+            <span class="sheet-subtitle">Passo a passo simples em menos de 2 minutos</span>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnCloseScriptGuideModal">&times;</button>
+      </div>
+
+      <div class="sheet-content">
+        <!-- Passo 1 -->
+        <div class="guide-step-card">
+          <h5>1️⃣ Criar a Planilha no Google Drive</h5>
+          <p>Acesse o <a href="https://sheets.new" target="_blank" style="color: var(--primary); font-weight: 700; text-decoration: underline;">sheets.new</a> e crie uma planilha em branco chamada <strong>"Banco de Vendas"</strong>.</p>
+        </div>
+
+        <!-- Passo 2 -->
+        <div class="guide-step-card">
+          <h5>2️⃣ Abrir o Apps Script</h5>
+          <p>No menu superior da sua planilha, clique em <strong>Extensões</strong> ➔ <strong>Apps Script</strong>.</p>
+        </div>
+
+        <!-- Passo 3 -->
+        <div class="guide-step-card">
+          <h5>3️⃣ Colar o Código do Servidor</h5>
+          <p>Apague o código padrão `function myFunction() {}` e cole exatamente o código abaixo:</p>
+          
+          <div class="apps-script-code-container">
+            <button type="button" class="btn-copy-code" id="btnCopyScriptCode">📋 Copiar Código</button>
+            <pre class="apps-script-code-pre" id="appsScriptCodePre">/**
+ * GOOGLE APPS SCRIPT - API BANCO DE DADOS 24H
+ * Registro de Vendas & Catálogo de Produtos
+ */
+function doGet(e) {
+  var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : "getAll";
+  if (action === "ping") {
+    return createJsonResponse({ status: "success", message: "Conexão ativa 24h!" });
+  }
+  var allProds = readProductsFromSheet();
+  var allSales = readSalesFromSheet();
+  return createJsonResponse({ status: "success", products: allProds, sales: allSales });
+}
+
+function doPost(e) {
+  try {
+    if (!e || !e.postData || !e.postData.contents) {
+      return createJsonResponse({ status: "error", message: "Dados não enviados" });
+    }
+    var payload = JSON.parse(e.postData.contents);
+    var action = payload.action;
+
+    if (action === "ping") {
+      return createJsonResponse({ status: "success", message: "Conexão com Google Sheets ativa!" });
+    }
+
+    if (action === "addSale") {
+      var sale = payload.sale || payload;
+      var sheet = getOrCreateSheet("Vendas", [
+        "Data/Hora", "Vendedor", "Produto", "Preço (R$)", 
+        "Cliente", "Contato", "Endereço", "Frete", 
+        "Pagamento", "Observação", "Comissão (R$)", "Lucro (R$)", "ID Venda"
+      ]);
+      
+      // Se houver múltiplos itens anotados, gera uma linha para cada produto
+      if (sale.itens && Array.isArray(sale.itens) && sale.itens.length > 0) {
+        var count = sale.itens.length;
+        for (var idx = 0; idx < count; idx++) {
+          var item = sale.itens[idx];
+          var itemNome = item.produto || sale.produto || "";
+          var itemPreco = (typeof item.preco === "number") ? item.preco.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (item.preco || "0,00");
+          
+          // Calcula comissão e lucro do item (ou rateia se não houver individual)
+          var itemComissao = "0,00";
+          var itemLucro = "0,00";
+          if (typeof item.basePrice === "number" && typeof item.preco === "number") {
+            var cVal = item.preco - item.basePrice;
+            itemComissao = cVal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          }
+          if (typeof item.basePrice === "number" && typeof item.cost === "number") {
+            var lVal = item.basePrice - item.cost;
+            itemLucro = lVal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          }
+
+          sheet.appendRow([
+            sale.dateString || new Date().toLocaleString("pt-BR"),
+            sale.vendedor || "",
+            itemNome,
+            itemPreco,
+            sale.cliente || "",
+            sale.contato || "",
+            sale.endereco || "",
+            (idx === 0) ? (sale.frete || "") : "Incluso",
+            sale.pagamento || "",
+            (count > 1 ? ("Item " + (idx + 1) + "/" + count + " - " + (sale.observacao || "")) : (sale.observacao || "")),
+            itemComissao !== "0,00" ? itemComissao : (sale.comissao || "0,00"),
+            itemLucro !== "0,00" ? itemLucro : (sale.lucro || "0,00"),
+            (sale.id || ("sale-" + new Date().getTime())) + (count > 1 ? ("-" + (idx + 1)) : "")
+          ]);
+        }
+      } else {
+        sheet.appendRow([
+          sale.dateString || new Date().toLocaleString("pt-BR"),
+          sale.vendedor || "", sale.produto || "", sale.preco || "0,00",
+          sale.cliente || "", sale.contato || "", sale.endereco || "",
+          sale.frete || "", sale.pagamento || "", sale.observacao || "",
+          sale.comissao || "0,00", sale.lucro || "0,00",
+          sale.id || ("sale-" + new Date().getTime())
+        ]);
+      }
+      return createJsonResponse({ status: "success", message: "Venda gravada com sucesso!" });
+    }
+
+    if (action === "editSale") {
+      var sale = payload.sale;
+      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Vendas");
+      if (sheet) {
+        var data = sheet.getDataRange().getValues();
+        for (var i = 1; i < data.length; i++) {
+          if (String(data[i][12]) === String(sale.id)) {
+            sheet.getRange(i + 1, 1, 1, 13).setValues([[
+              sale.dateString || String(data[i][0]),
+              sale.vendedor || "", sale.produto || "", sale.preco || "0,00",
+              sale.cliente || "", sale.contato || "", sale.endereco || "",
+              sale.frete || "", sale.pagamento || "", sale.observacao || "",
+              sale.comissao || "0,00", sale.lucro || "0,00", sale.id
+            ]]);
+            return createJsonResponse({ status: "success", message: "Venda editada!" });
+          }
+        }
+      }
+      return createJsonResponse({ status: "error", message: "Venda não encontrada" });
+    }
+
+    if (action === "deleteSale") {
+      var id = payload.id;
+      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Vendas");
+      if (sheet) {
+        var data = sheet.getDataRange().getValues();
+        for (var i = 1; i < data.length; i++) {
+          if (String(data[i][12]) === String(id)) {
+            sheet.deleteRow(i + 1);
+            return createJsonResponse({ status: "success", message: "Venda excluída!" });
+          }
+        }
+      }
+      return createJsonResponse({ status: "error", message: "Venda não encontrada" });
+    }
+
+    if (action === "saveProducts") {
+      var products = payload.products || [];
+      var sheet = getOrCreateSheet("Produtos", [
+        "SKU", "Produto", "Preço Venda (R$)", "Custo (R$)", "Preço Base (R$)", "Categoria", "ID"
+      ]);
+      var lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        sheet.getRange(2, 1, lastRow - 1, 7).clearContent();
+      }
+      if (products.length > 0) {
+        var rows = products.map(function(p) {
+          return [
+            p.sku || p.id || "",
+            p.name || "",
+            p.price || "0,00",
+            p.cost || "",
+            p.basePrice || p.price || "0,00",
+            p.category || "Geral",
+            p.id || ("p-" + Math.random().toString(36).substr(2, 9))
+          ];
+        });
+        sheet.getRange(2, 1, rows.length, 7).setValues(rows);
+      }
+      return createJsonResponse({ status: "success", message: products.length + " produtos salvos na planilha!", count: products.length });
+    }
+
+    return createJsonResponse({ status: "error", message: "Ação não reconhecida" });
+  } catch (error) {
+    return createJsonResponse({ status: "error", message: error.toString() });
+  }
+}
+
+function getOrCreateSheet(sheetName, headers) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#e2e8f0");
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function readProductsFromSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Produtos");
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+  var products = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (!row[1]) continue;
+    products.push({
+      sku: String(row[0] || ""),
+      name: String(row[1]),
+      price: String(row[2]),
+      cost: String(row[3] || ""),
+      basePrice: String(row[4] || row[2]),
+      category: String(row[5] || "Geral"),
+      id: String(row[6] || ("p-" + i))
+    });
+  }
+  return products;
+}
+
+function readSalesFromSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Vendas");
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+  var sales = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (!row[1] && !row[2]) continue;
+    sales.push({
+      id: String(row[12] || ("sale-" + i)),
+      dateString: String(row[0]),
+      vendedor: String(row[1]),
+      produto: String(row[2]),
+      preco: String(row[3]),
+      cliente: String(row[4]),
+      contato: String(row[5]),
+      endereco: String(row[6]),
+      frete: String(row[7]),
+      pagamento: String(row[8]),
+      observacao: String(row[9]),
+      comissao: String(row[10]),
+      lucro: String(row[11]),
+      timestamp: new Date(row[0]).getTime() || (Date.now() - i * 1000)
+    });
+  }
+  return sales;
+}
+
+function createJsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+          </div>
+        </div>
+
+        <!-- Passo 4 -->
+        <div class="guide-step-card">
+          <h5>4️⃣ Implantar como Aplicativo da Web</h5>
+          <ul>
+            <li>No canto superior direito, clique em <strong>Implantar (Deploy)</strong> ➔ <strong>Nova implantação</strong>.</li>
+            <li>No ícone de engrenagem ao lado de "Selecionar tipo", escolha <strong>App da Web</strong>.</li>
+            <li>Configure exatamente assim:
+              <br>• <strong>Executar como:</strong> <code>Eu (seu email)</code>
+              <br>• <strong>Quem pode acessar:</strong> <code>Qualquer pessoa (Anyone)</code>
+            </li>
+            <li>Clique em <strong>Implantar</strong> e autorize o acesso com sua conta Google.</li>
+          </ul>
+        </div>
+
+        <!-- Passo 5 -->
+        <div class="guide-step-card">
+          <h5>5️⃣ Copiar a URL e Colar no App</h5>
+          <p>O Google vai gerar uma URL terminada em <code>/exec</code>. Copie essa URL, volte aqui nas Configurações do App, cole no campo e clique em <strong>Testar</strong>!</p>
+        </div>
+
+        <button type="button" class="btn-primary-save mt-2" id="btnDoneScriptGuide">
+          Entendi, Fechar Guia
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+  <!-- ============================================== -->
+  <!-- MODAL / VISUALIZADOR DE RECIBO E GARANTIA (PDF) -->
+  <!-- ============================================== -->
+  <div class="modal-backdrop" id="garantiaModalBackdrop" style="display: none;">
+    <div class="modal-card garantia-modal-card" role="dialog" aria-modal="true" aria-labelledby="garantiaModalTitle">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="garantia-badge-header">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+          </div>
+          <div>
+            <h3 id="garantiaModalTitle">Recibo e Termo de Garantia</h3>
+            <p>Documento oficial pronto para envio e arquivamento</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" id="btnCloseGarantiaModal" aria-label="Fechar">&times;</button>
+      </div>
+
+      <div class="modal-body garantia-modal-scroll">
+        <!-- Live Document Render Area -->
+        <div id="garantiaDocumentRender" class="garantia-paper-render">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <div class="modal-footer garantia-modal-actions">
+        <button type="button" class="btn-cancel" id="btnDismissGarantiaModal">Fechar</button>
+        <button type="button" class="btn-secondary-sm" id="btnPrintGarantiaDoc">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          Imprimir
+        </button>
+        <button type="button" class="btn-primary-save" id="btnDownloadGarantiaPDF">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Baixar PDF
+        </button>
+        <button type="button" class="btn-whatsapp-send" id="btnShareGarantiaWhatsapp">
+          <svg viewBox="0 0 32 32" width="18" height="18" fill="#fff">
+            <path d="M16 2.05c-7.7 0-13.95 6.25-13.95 13.95 0 2.47.65 4.87 1.88 7L2 30l7.21-1.89c2.06 1.12 4.38 1.71 6.79 1.71 7.7 0 13.95-6.25 13.95-13.95S23.7 2.05 16 2.05zm0 25.56c-2.12 0-4.18-.57-5.99-1.64l-.43-.25-4.45 1.17 1.19-4.34-.28-.44c-1.18-1.87-1.8-4.04-1.8-6.26 0-6.4 5.21-11.6 11.6-11.6 6.4 0 11.6 5.21 11.6 11.6 0 6.39-5.21 11.6-11.6 11.6zm6.36-8.69c-.35-.18-2.07-1.02-2.39-1.14-.32-.12-.55-.18-.78.18-.23.35-.9 1.14-1.1 1.38-.2.23-.41.26-.76.09-.35-.18-1.48-.55-2.82-1.74-1.04-.93-1.75-2.08-1.95-2.43-.2-.35-.02-.54.15-.71.16-.16.35-.41.52-.61.18-.2.23-.35.35-.58.12-.23.06-.44-.03-.61-.09-.18-.78-1.88-1.07-2.58-.28-.68-.57-.59-.78-.6-.2-.01-.44-.01-.67-.01-.23 0-.61.09-.93.44-.32.35-1.22 1.19-1.22 2.9 0 1.71 1.25 3.37 1.42 3.6.18.23 2.46 3.76 5.96 5.27.83.36 1.48.58 1.99.74.84.27 1.6.23 2.21.14.67-.1 2.07-.85 2.36-1.66.29-.82.29-1.52.2-1.66-.09-.15-.32-.24-.67-.41z"/>
+          </svg>
+          Enviar no WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Offscreen Container dedicado para Geração de PDF 100% Nítido sem cortes -->
+  <div id="garantiaPdfOffscreen" style="position: absolute; left: -9999px; top: 0; width: 800px; background: #ffffff; padding: 32px; box-sizing: border-box; font-family: 'Inter', Arial, sans-serif; color: #111827;"></div>
+
+  <!-- App JavaScript Logic -->
+  <script src="app.js"></script>
+</body>
+</html>

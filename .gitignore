@@ -1,0 +1,6 @@
+# Arquivos do sistema e temporários
+.agents/
+argv.json
+*.zip
+.DS_Store
+Thumbs.db
