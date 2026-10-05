@@ -2283,7 +2283,8 @@ async function handleSendWhatsappDirectWithGarantia() {
 window.openGarantiaFromSaleId = function(saleId) {
   const sale = appState.sales.find(s => s.id === saleId);
   if (sale) {
-    openGarantiaModal(sale);
+    currentGarantiaSaleData = sale;
+    shareGarantiaOnWhatsapp();
   }
 };
 

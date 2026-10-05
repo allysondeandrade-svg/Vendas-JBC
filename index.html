@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css?v=20261004_2">
+  <link rel="stylesheet" href="styles.css?v=20261004_3">
   
   <!-- PDF Generation Libraries (jsPDF + html2canvas) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -919,19 +919,19 @@
 
         <!-- Quick actions -->
         <div class="sheet-action-buttons">
-          <button type="button" class="btn-whatsapp-send" id="btnSendWhatsappDirect">
-            <svg viewBox="0 0 32 32" width="22" height="22" fill="#fff">
-              <path d="M16 2.05c-7.7 0-13.95 6.25-13.95 13.95 0 2.47.65 4.87 1.88 7L2 30l7.21-1.89c2.06 1.12 4.38 1.71 6.79 1.71 7.7 0 13.95-6.25 13.95-13.95S23.7 2.05 16 2.05zm0 25.56c-2.12 0-4.18-.57-5.99-1.64l-.43-.25-4.45 1.17 1.19-4.34-.28-.44c-1.18-1.87-1.8-4.04-1.8-6.26 0-6.4 5.21-11.6 11.6-11.6 6.4 0 11.6 5.21 11.6 11.6 0 6.39-5.21 11.6-11.6 11.6zm6.36-8.69c-.35-.18-2.07-1.02-2.39-1.14-.32-.12-.55-.18-.78.18-.23.35-.9 1.14-1.1 1.38-.2.23-.41.26-.76.09-.35-.18-1.48-.55-2.82-1.74-1.04-.93-1.75-2.08-1.95-2.43-.2-.35-.02-.54.15-.71.16-.16.35-.41.52-.61.18-.2.23-.35.35-.58.12-.23.06-.44-.03-.61-.09-.18-.78-1.88-1.07-2.58-.28-.68-.57-.59-.78-.6-.2-.01-.44-.01-.67-.01-.23 0-.61.09-.93.44-.32.35-1.22 1.19-1.22 2.9 0 1.71 1.25 3.37 1.42 3.6.18.23 2.46 3.76 5.96 5.27.83.36 1.48.58 1.99.74.84.27 1.6.23 2.21.14.67-.1 2.07-.85 2.36-1.66.29-.82.29-1.52.2-1.66-.09-.15-.32-.24-.67-.41z"/>
-            </svg>
-            <span id="btnSendWhatsappText">Enviar</span>
-          </button>
-
           <button type="button" class="btn-copy-clipboard" id="btnCopyWhatsappMessage">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
               <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
             </svg>
             Copiar Texto
+          </button>
+
+          <button type="button" class="btn-whatsapp-send" id="btnSendWhatsappDirect">
+            <svg viewBox="0 0 32 32" width="22" height="22" fill="#fff">
+              <path d="M16 2.05c-7.7 0-13.95 6.25-13.95 13.95 0 2.47.65 4.87 1.88 7L2 30l7.21-1.89c2.06 1.12 4.38 1.71 6.79 1.71 7.7 0 13.95-6.25 13.95-13.95S23.7 2.05 16 2.05zm0 25.56c-2.12 0-4.18-.57-5.99-1.64l-.43-.25-4.45 1.17 1.19-4.34-.28-.44c-1.18-1.87-1.8-4.04-1.8-6.26 0-6.4 5.21-11.6 11.6-11.6 6.4 0 11.6 5.21 11.6 11.6 0 6.39-5.21 11.6-11.6 11.6zm6.36-8.69c-.35-.18-2.07-1.02-2.39-1.14-.32-.12-.55-.18-.78.18-.23.35-.9 1.14-1.1 1.38-.2.23-.41.26-.76.09-.35-.18-1.48-.55-2.82-1.74-1.04-.93-1.75-2.08-1.95-2.43-.2-.35-.02-.54.15-.71.16-.16.35-.41.52-.61.18-.2.23-.35.35-.58.12-.23.06-.44-.03-.61-.09-.18-.78-1.88-1.07-2.58-.28-.68-.57-.59-.78-.6-.2-.01-.44-.01-.67-.01-.23 0-.61.09-.93.44-.32.35-1.22 1.19-1.22 2.9 0 1.71 1.25 3.37 1.42 3.6.18.23 2.46 3.76 5.96 5.27.83.36 1.48.58 1.99.74.84.27 1.6.23 2.21.14.67-.1 2.07-.85 2.36-1.66.29-.82.29-1.52.2-1.66-.09-.15-.32-.24-.67-.41z"/>
+            </svg>
+            <span id="btnSendWhatsappText">Enviar Mensagem</span>
           </button>
         </div>
 
@@ -1442,6 +1442,6 @@ function createJsonResponse(obj) {
   <div id="garantiaPdfOffscreen" style="position: absolute; left: -9999px; top: 0; width: 800px; background: #ffffff; padding: 32px; box-sizing: border-box; font-family: 'Inter', Arial, sans-serif; color: #111827;"></div>
 
   <!-- App JavaScript Logic (com cache-busting para atualizar no GitHub Pages) -->
-  <script src="app.js?v=20261004_2"></script>
+  <script src="app.js?v=20261004_3"></script>
 </body>
 </html>

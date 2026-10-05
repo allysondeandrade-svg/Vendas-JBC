@@ -1579,16 +1579,16 @@ html, body {
 
 .sheet-action-buttons {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .btn-whatsapp-send {
-  flex: 2;
+  flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px;
+  padding: 13px 12px;
   background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
   color: #fff;
   border: none;
@@ -1598,10 +1598,12 @@ html, body {
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4);
+  transition: all 0.2s ease;
 }
 
 .btn-whatsapp-send:hover {
   filter: brightness(1.06);
+  transform: translateY(-1px);
 }
 
 .btn-copy-clipboard {
@@ -1609,20 +1611,22 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 12px;
+  gap: 8px;
+  padding: 13px 12px;
   background: var(--input-bg);
-  border: 1px solid var(--input-border);
+  border: 1.5px solid var(--input-border);
   border-radius: var(--radius-md);
   font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--text-main);
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .btn-copy-clipboard:hover {
   background: var(--card-border);
+  transform: translateY(-1px);
 }
 
 /* ==========================================================================
