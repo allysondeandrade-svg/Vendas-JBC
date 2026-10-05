@@ -3095,7 +3095,7 @@ html, body {
 .garantia-paper-render {
   background: #ffffff;
   color: #111827;
-  padding: 24px;
+  padding: 32px 36px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
   border-radius: 6px;
   font-family: 'Inter', Arial, sans-serif;
@@ -3104,28 +3104,28 @@ html, body {
 
 .doc-top-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  border-bottom: 2px solid #e5e7eb;
-  padding-bottom: 12px;
-  margin-bottom: 16px;
+  border-bottom: 2.5px solid #cbd5e1;
+  padding-bottom: 18px;
+  margin-bottom: 22px;
 }
 
 .doc-brand-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .doc-brand-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 6px;
+  width: 68px;
+  height: 68px;
+  border-radius: 8px;
   object-fit: cover;
 }
 
 .doc-company-info h3 {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 800;
   color: #0f172a;
   margin: 0;
@@ -3133,9 +3133,10 @@ html, body {
 }
 
 .doc-company-info p {
-  font-size: 10.5px;
-  color: #475569;
-  margin: 2px 0 0 0;
+  font-size: 13px;
+  color: #334155;
+  margin: 4px 0 0 0;
+  line-height: 1.4;
 }
 
 .doc-title-badge {
@@ -3143,7 +3144,7 @@ html, body {
 }
 
 .doc-main-title {
-  font-size: 16px;
+  font-size: 22px;
   font-weight: 900;
   color: #047857;
   text-transform: uppercase;
@@ -3152,25 +3153,18 @@ html, body {
 }
 
 .doc-badge-pill {
-  display: inline-block;
-  font-size: 9.5px;
-  font-weight: 700;
-  background: #d1fae5;
-  color: #065f46;
-  padding: 2px 8px;
-  border-radius: 12px;
-  margin-top: 4px;
+  display: none !important;
 }
 
 .doc-section-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 16px 20px;
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 16px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 22px;
 }
 
 .doc-field-item {
@@ -3179,33 +3173,35 @@ html, body {
 }
 
 .doc-field-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  color: #475569;
   text-transform: uppercase;
+  margin-bottom: 2px;
 }
 
 .doc-field-val {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #1e293b;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
   word-break: break-word;
 }
 
 .doc-products-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 16px;
+  margin-bottom: 22px;
 }
 
 .doc-products-table th {
   background: #0f172a;
   color: #ffffff;
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 800;
   text-align: left;
-  padding: 8px 10px;
+  padding: 12px 14px;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .doc-products-table th:last-child {
@@ -3213,15 +3209,15 @@ html, body {
 }
 
 .doc-products-table td {
-  padding: 8px 10px;
-  font-size: 11.5px;
-  border-bottom: 1px solid #e2e8f0;
-  color: #334155;
+  padding: 12px 14px;
+  font-size: 14.5px;
+  border-bottom: 1.5px solid #e2e8f0;
+  color: #1e293b;
 }
 
 .doc-products-table td:last-child {
   text-align: right;
-  font-weight: 700;
+  font-weight: 800;
   color: #0f172a;
 }
 
@@ -3230,48 +3226,48 @@ html, body {
   justify-content: space-between;
   align-items: center;
   background: #f1f5f9;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 13px;
-  margin-bottom: 16px;
-  border-left: 4px solid #059669;
+  padding: 14px 20px;
+  border-radius: 6px;
+  font-size: 16px;
+  margin-bottom: 22px;
+  border-left: 6px solid #059669;
 }
 
 .doc-total-val {
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 900;
   color: #059669;
 }
 
 /* Termos da Garantia */
 .doc-terms-card {
   border: 1.5px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 12px 14px;
+  border-radius: 8px;
+  padding: 18px 20px;
   background: #ffffff;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .doc-terms-card h4 {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 800;
   text-transform: uppercase;
   color: #0f172a;
-  margin: 0 0 8px 0;
-  border-bottom: 1px dashed #cbd5e1;
-  padding-bottom: 4px;
+  margin: 0 0 12px 0;
+  border-bottom: 1.5px dashed #cbd5e1;
+  padding-bottom: 6px;
 }
 
 .doc-terms-list {
-  padding-left: 16px;
+  padding-left: 20px;
   margin: 0;
-  font-size: 10.5px;
-  line-height: 1.55;
-  color: #334155;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: #1e293b;
 }
 
 .doc-terms-list li {
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .doc-terms-highlight {
@@ -3282,18 +3278,18 @@ html, body {
 .doc-signature-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 30px;
-  margin-top: 24px;
+  gap: 40px;
+  margin-top: 36px;
   padding-top: 10px;
 }
 
 .doc-signature-line {
-  border-top: 1px solid #475569;
+  border-top: 1.5px solid #334155;
   text-align: center;
-  padding-top: 6px;
-  font-size: 10px;
-  color: #64748b;
-  font-weight: 600;
+  padding-top: 8px;
+  font-size: 12.5px;
+  color: #475569;
+  font-weight: 700;
 }
 
 

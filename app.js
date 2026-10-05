@@ -2021,9 +2021,9 @@ function renderGarantiaDocumentHtml(saleData) {
 
     return `
       <tr>
-        <td style="width: 25%; font-weight: 700; color: #0f172a;">${escapeHtml(sku || 'JBC')}</td>
-        <td style="width: 55%;">${escapeHtml(desc)}</td>
-        <td style="width: 20%; text-align: right; font-weight: 700; color: #047857;">R$ ${escapeHtml(preco)}</td>
+        <td style="width: 22%; font-weight: 800; color: #0f172a; font-size: 15px;">${escapeHtml(sku || 'JBC')}</td>
+        <td style="width: 53%; font-weight: 600; color: #1e293b; font-size: 15px;">${escapeHtml(desc)}</td>
+        <td style="width: 25%; text-align: right; font-weight: 800; color: #047857; font-size: 16px;">R$ ${escapeHtml(preco)}</td>
       </tr>
     `;
   }).join('');
@@ -2031,7 +2031,7 @@ function renderGarantiaDocumentHtml(saleData) {
   return `
     <div class="doc-top-header">
       <div class="doc-brand-left">
-        <img src="icon.jpg" alt="Logo JBC" class="doc-brand-logo">
+        <img src="logo-2.jpg" alt="Logo JBC Eletro" class="doc-brand-logo">
         <div class="doc-company-info">
           <h3>JBC ELETROMAGAZINE LTDA</h3>
           <p><strong>CNPJ:</strong> 29.991.508/0001-80</p>
@@ -2040,13 +2040,12 @@ function renderGarantiaDocumentHtml(saleData) {
       </div>
       <div class="doc-title-badge">
         <h2 class="doc-main-title">RECIBO E GARANTIA</h2>
-        <span class="doc-badge-pill">Garantia Oficial JBC</span>
       </div>
     </div>
 
     <div class="doc-section-grid">
       <div class="doc-field-item">
-        <span class="doc-field-label">Cliente:</span>
+        <span class="doc-field-label">CLIENTE:</span>
         <span class="doc-field-val">${escapeHtml(clienteNome)}</span>
       </div>
       <div class="doc-field-item">
@@ -2054,11 +2053,11 @@ function renderGarantiaDocumentHtml(saleData) {
         <span class="doc-field-val">${escapeHtml(clienteDoc)}</span>
       </div>
       <div class="doc-field-item">
-        <span class="doc-field-label">Vendedor / Atendente:</span>
+        <span class="doc-field-label">VENDEDOR / ATENDENTE:</span>
         <span class="doc-field-val">${escapeHtml(vendedorNome)}</span>
       </div>
       <div class="doc-field-item">
-        <span class="doc-field-label">Data da Compra:</span>
+        <span class="doc-field-label">DATA DA COMPRA:</span>
         <span class="doc-field-val">${escapeHtml(dataVenda)}</span>
       </div>
     </div>
@@ -2135,7 +2134,7 @@ async function generateGarantiaPdfBlob(saleData) {
     useCORS: true,
     logging: false,
     backgroundColor: '#ffffff',
-    windowWidth: 850
+    windowWidth: 800
   });
 
   const imgData = canvas.toDataURL('image/jpeg', 0.98);
@@ -2151,11 +2150,29 @@ async function generateGarantiaPdfBlob(saleData) {
   const pdfWidth = pdf.internal.pageSize.getWidth();
   const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-  // Renderiza com margem superior de 5mm
-  pdf.addImage(imgData, 'JPEG', 0, 5, pdfWidth, Math.min(pdfHeight, 287));
+  // Renderiza ocupando a folha com margens proporcionais
+  pdf.addImage(imgData, 'JPEG', 0, 4, pdfWidth, Math.min(pdfHeight, 289));
 
-  const cleanClient = (saleData.cliente || 'cliente').replace(/[^a-zA-Z0-9]/g, '_');
-  const filename = `Recibo_Garantia_JBC_${cleanClient}_${Date.now()}.pdf`;
+  // Extrair data da venda ou usar a data atual no formato dd/mm
+  let ddmm = '';
+  if (saleData.timestamp) {
+    const d = new Date(saleData.timestamp);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    ddmm = `${dd}-${mm}`;
+  } else if (saleData.dateString) {
+    const parts = saleData.dateString.split(/[\/\s-]/);
+    if (parts.length >= 2) {
+      ddmm = `${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+    }
+  }
+  if (!ddmm) {
+    const d = new Date();
+    ddmm = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  // Nome do arquivo solicitado: Garantia JBC ELETRO dd/mm (com traço no arquivo para compatibilidade com SOs)
+  const filename = `Garantia JBC ELETRO ${ddmm}.pdf`;
 
   return { pdf, filename };
 }
