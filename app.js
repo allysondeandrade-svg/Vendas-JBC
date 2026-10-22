@@ -994,6 +994,77 @@ window.formatAndSearchCEP = async function(elem) {
   }
 };
 
+window.updateProductRowButtons = function() {
+  const container = document.getElementById('productsContainer');
+  if (!container) return;
+  const entries = container.querySelectorAll('.product-entry');
+  
+  if (entries.length <= 1) {
+    // Se tiver apenas 1 produto, garante que mostre o botão de adicionar (+)
+    entries.forEach(entry => {
+      const wrapper = entry.querySelector('.input-wrapper');
+      if (wrapper) {
+        let actionBtn = wrapper.querySelector('.btn-add-product, .btn-remove-product');
+        if (!actionBtn) {
+          actionBtn = document.createElement('button');
+          wrapper.appendChild(actionBtn);
+        }
+        actionBtn.type = 'button';
+        actionBtn.className = 'btn-add-product';
+        actionBtn.id = 'btnAddProductRow';
+        actionBtn.title = 'Adicionar mais um produto';
+        actionBtn.onclick = function() { window.addEmptyProductRow(); };
+        actionBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        `;
+      }
+    });
+  } else {
+    // Se tiver mais de 1 produto:
+    // Apenas a última linha (ou primeira) tem botão de adicionar? Normalmente cada linha intermediária tem remover (-), e pode-se permitir remover qualquer uma ou adicionar na primeira/última.
+    // Melhor padrão: todas as linhas têm o botão vermelho de remover (-), exceto a última ou primeira que também permite adicionar.
+    // O mais intuitivo: a primeira linha tem o botão de adicionar (+), e as linhas subsequentes têm o botão de remover (-). Ou se preferir, a última tem (+) e as outras têm (-).
+    // Conforme pedido: "Se tiver apenas um produto não deixe aparecer o botão de remover produto, mas sim o de adicionar o produto."
+    // Portanto: quando houver múltiplos produtos, a primeira linha tem botão de adicionar (+), e todas as demais têm o botão de remover (-).
+    entries.forEach((entry, idx) => {
+      const wrapper = entry.querySelector('.input-wrapper');
+      if (wrapper) {
+        let actionBtn = wrapper.querySelector('.btn-add-product, .btn-remove-product');
+        if (!actionBtn) {
+          actionBtn = document.createElement('button');
+          wrapper.appendChild(actionBtn);
+        }
+        actionBtn.type = 'button';
+        if (idx === 0) {
+          actionBtn.className = 'btn-add-product';
+          actionBtn.id = 'btnAddProductRow';
+          actionBtn.title = 'Adicionar mais um produto';
+          actionBtn.onclick = function() { window.addEmptyProductRow(); };
+          actionBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          `;
+        } else {
+          actionBtn.className = 'btn-remove-product';
+          actionBtn.removeAttribute('id');
+          actionBtn.title = 'Remover este produto';
+          actionBtn.onclick = function() { window.removeProductRow(actionBtn); };
+          actionBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          `;
+        }
+      }
+    });
+  }
+};
+
 window.addEmptyProductRow = function() {
   const container = document.getElementById('productsContainer');
   const index = container.children.length;
@@ -1039,12 +1110,16 @@ window.addEmptyProductRow = function() {
   const inputPreco = newRow.querySelector('.input-preco');
   inputPreco.addEventListener('input', onSellingPriceInputChange);
   
+  window.updateProductRowButtons();
   SoundEffects.playPop();
 };
 
 window.removeProductRow = function(button) {
   const row = button.closest('.product-entry');
-  row.remove();
+  if (row) {
+    row.remove();
+  }
+  window.updateProductRowButtons();
   recalculateTotals();
   SoundEffects.playPop();
 };
@@ -1146,6 +1221,7 @@ function clearSalesForm() {
     const firstPreco = container.querySelector('.input-preco');
     if (firstProd) firstProd.value = '';
     if (firstPreco) firstPreco.value = '';
+    if (window.updateProductRowButtons) window.updateProductRowButtons();
   }
   
   recalculateTotals();
@@ -1625,6 +1701,7 @@ window.onEditSale = function(saleId) {
         latestEntry.querySelector('.input-preco').value = typeof prodPreco === 'number' ? formatBRL(prodPreco) : prodPreco.toString().replace('R$ ', '');
       }
     });
+    if (window.updateProductRowButtons) window.updateProductRowButtons();
   }
   DOM.inputCliente.value = sale.cliente !== 'Não informado' ? sale.cliente : '';
   if (DOM.inputDocumento) DOM.inputDocumento.value = sale.documento && sale.documento !== 'Não informado' ? sale.documento : '';
