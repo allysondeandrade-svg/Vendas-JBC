@@ -1166,7 +1166,8 @@ function doPost(e) {
       // Se houver múltiplos itens anotados, gera uma linha para cada produto
       if (sale.itens && Array.isArray(sale.itens) && sale.itens.length > 0) {
         var count = sale.itens.length;
-        for (var idx = 0; idx < count; idx++) {
+        // Inserir linhas no topo (linha 2) para que a mais recente fique sempre acima
+        for (var idx = count - 1; idx >= 0; idx--) {
           var item = sale.itens[idx];
           var itemNome = item.produto || sale.produto || "";
           var itemPreco = (typeof item.preco === "number") ? item.preco.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (item.preco || "0,00");
@@ -1183,7 +1184,8 @@ function doPost(e) {
             itemLucro = lVal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           }
 
-          sheet.appendRow([
+          sheet.insertRowBefore(2);
+          sheet.getRange(2, 1, 1, 13).setValues([[
             sale.dateString || new Date().toLocaleString("pt-BR"),
             sale.vendedor || "",
             itemNome,
@@ -1197,19 +1199,20 @@ function doPost(e) {
             itemComissao !== "0,00" ? itemComissao : (sale.comissao || "0,00"),
             itemLucro !== "0,00" ? itemLucro : (sale.lucro || "0,00"),
             (sale.id || ("sale-" + new Date().getTime())) + (count > 1 ? ("-" + (idx + 1)) : "")
-          ]);
+          ]]);
         }
       } else {
-        sheet.appendRow([
+        sheet.insertRowBefore(2);
+        sheet.getRange(2, 1, 1, 13).setValues([[
           sale.dateString || new Date().toLocaleString("pt-BR"),
           sale.vendedor || "", sale.produto || "", sale.preco || "0,00",
           sale.cliente || "", sale.contato || "", sale.endereco || "",
           sale.frete || "", sale.pagamento || "", sale.observacao || "",
           sale.comissao || "0,00", sale.lucro || "0,00",
           sale.id || ("sale-" + new Date().getTime())
-        ]);
+        ]]);
       }
-      return createJsonResponse({ status: "success", message: "Venda gravada com sucesso!" });
+      return createJsonResponse({ status: "success", message: "Venda gravada com sucesso no topo da planilha!" });
     }
 
     if (action === "editSale") {
@@ -1315,6 +1318,27 @@ function readProductsFromSheet() {
   return products;
 }
 
+function parseDateStringToTimestamp(str) {
+  if (!str) return 0;
+  if (Object.prototype.toString.call(str) === '[object Date]' || str instanceof Date) {
+    return isNaN(str.getTime()) ? 0 : str.getTime();
+  }
+  var s = String(str).trim();
+  var parts = s.split(/[\/\s:-]/);
+  if (parts.length >= 3) {
+    var day = parseInt(parts[0], 10);
+    var month = parseInt(parts[1], 10) - 1;
+    var year = parseInt(parts[2], 10) < 100 ? 2000 + parseInt(parts[2], 10) : parseInt(parts[2], 10);
+    var hour = parts[3] ? parseInt(parts[3], 10) : 0;
+    var min = parts[4] ? parseInt(parts[4], 10) : 0;
+    var sec = parts[5] ? parseInt(parts[5], 10) : 0;
+    var d = new Date(year, month, day, hour, min, sec);
+    if (!isNaN(d.getTime())) return d.getTime();
+  }
+  var parsed = new Date(s).getTime();
+  return isNaN(parsed) ? 0 : parsed;
+}
+
 function readSalesFromSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("Vendas");
@@ -1325,9 +1349,17 @@ function readSalesFromSheet() {
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
     if (!row[1] && !row[2]) continue;
+    var rawDate = row[0];
+    var formattedDateStr = "";
+    if (Object.prototype.toString.call(rawDate) === '[object Date]' || rawDate instanceof Date) {
+      formattedDateStr = Utilities.formatDate(rawDate, Session.getScriptTimeZone() || "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
+    } else {
+      formattedDateStr = String(rawDate || "");
+    }
+    var ts = parseDateStringToTimestamp(rawDate) || (Date.now() - i * 1000);
     sales.push({
       id: String(row[12] || ("sale-" + i)),
-      dateString: String(row[0]),
+      dateString: formattedDateStr,
       vendedor: String(row[1]),
       produto: String(row[2]),
       preco: String(row[3]),
@@ -1339,9 +1371,13 @@ function readSalesFromSheet() {
       observacao: String(row[9]),
       comissao: String(row[10]),
       lucro: String(row[11]),
-      timestamp: new Date(row[0]).getTime() || (Date.now() - i * 1000)
+      timestamp: ts
     });
   }
+  // Garante ordem da mais recente para a mais antiga
+  sales.sort(function(a, b) {
+    return (b.timestamp || 0) - (a.timestamp || 0);
+  });
   return sales;
 }
 

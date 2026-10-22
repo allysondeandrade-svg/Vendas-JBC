@@ -510,10 +510,51 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================================================
 // DATA PERSISTENCE & STORAGE
 // ============================================================================
+function parseSaleDateToTimestamp(item) {
+  if (!item) return 0;
+  if (item.timestamp && typeof item.timestamp === 'number' && !isNaN(item.timestamp) && item.timestamp > 0) {
+    return item.timestamp;
+  }
+  if (item.timestamp) {
+    const parsed = Number(item.timestamp);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  
+  const rawDate = String(item.dateString || item.data_entrega || '').trim();
+  if (rawDate) {
+    // Caso seja formato brasileiro DD/MM/AAAA ou DD/MM/AAAA HH:mm:ss
+    const brMatch = rawDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (brMatch) {
+      const day = parseInt(brMatch[1], 10);
+      const month = parseInt(brMatch[2], 10) - 1;
+      let year = parseInt(brMatch[3], 10);
+      if (year < 100) year += 2000;
+      const hour = brMatch[4] ? parseInt(brMatch[4], 10) : 0;
+      const min = brMatch[5] ? parseInt(brMatch[5], 10) : 0;
+      const sec = brMatch[6] ? parseInt(brMatch[6], 10) : 0;
+      const d = new Date(year, month, day, hour, min, sec);
+      if (!isNaN(d.getTime())) return d.getTime();
+    }
+
+    // Caso seja formato ISO YYYY-MM-DD ou Date string padrão
+    const isoParsed = Date.parse(rawDate);
+    if (!isNaN(isoParsed) && isoParsed > 0) {
+      return isoParsed;
+    }
+  }
+  return 0;
+}
+
+function sortSalesDescending(salesList) {
+  if (!Array.isArray(salesList)) return [];
+  return salesList.slice().sort((a, b) => parseSaleDateToTimestamp(b) - parseSaleDateToTimestamp(a));
+}
+
 function loadDataFromStorage() {
   try {
     const savedSales = localStorage.getItem(STORAGE_KEYS.SALES);
-    appState.sales = savedSales ? JSON.parse(savedSales) : INITIAL_SALES;
+    const parsedSales = savedSales ? JSON.parse(savedSales) : INITIAL_SALES;
+    appState.sales = sortSalesDescending(parsedSales);
 
     const savedProducts = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
     appState.products = savedProducts ? JSON.parse(savedProducts) : INITIAL_PRODUCTS;
@@ -1300,32 +1341,7 @@ function getFilteredSales() {
     return true;
   }).sort((a, b) => {
     // Ordenar da mais recente para a mais antiga (decrescente)
-    const getSaleTimestamp = (item) => {
-      if (item.timestamp && typeof item.timestamp === 'number' && !isNaN(item.timestamp)) {
-        return item.timestamp;
-      }
-      if (item.timestamp) {
-        const parsed = Number(item.timestamp);
-        if (!isNaN(parsed) && parsed > 0) return parsed;
-      }
-      // Tentar converter de dateString ou data_entrega (ex: DD/MM/AAAA ou DD/MM/AAAA HH:mm)
-      const rawDate = item.dateString || item.data_entrega || '';
-      if (rawDate) {
-        const parts = rawDate.split(/[\/\s:-]/);
-        if (parts.length >= 3) {
-          const day = parseInt(parts[0], 10);
-          const month = parseInt(parts[1], 10) - 1;
-          const year = parseInt(parts[2], 10) < 100 ? 2000 + parseInt(parts[2], 10) : parseInt(parts[2], 10);
-          const hour = parts[3] ? parseInt(parts[3], 10) : 0;
-          const min = parts[4] ? parseInt(parts[4], 10) : 0;
-          const d = new Date(year, month, day, hour, min);
-          if (!isNaN(d.getTime())) return d.getTime();
-        }
-      }
-      return 0;
-    };
-
-    return getSaleTimestamp(b) - getSaleTimestamp(a);
+    return parseSaleDateToTimestamp(b) - parseSaleDateToTimestamp(a);
   });
 }
 
@@ -1651,7 +1667,16 @@ window.onEditSale = function(saleId) {
   showSalesForm();
 
   showToast('✏️ Editando venda. Faça as alterações no formulário e clique em salvar.', 'info');
+  
+  // Rola até o topo do formulário tanto na janela quanto no container interno
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  const appBody = document.getElementById('appBodyContent');
+  if (appBody) {
+    appBody.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  if (DOM.salesFormSection) {
+    DOM.salesFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 };
 
 window.onFilterBySellerName = function(sellerName) {
@@ -3268,7 +3293,7 @@ async function fetchDataFromGoogleSheets(silent = false) {
 
       // Update sales from sheet
       if (Array.isArray(data.sales)) {
-        appState.sales = data.sales;
+        appState.sales = sortSalesDescending(data.sales);
         localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(appState.sales));
         renderSalesHistory();
         updated = true;
