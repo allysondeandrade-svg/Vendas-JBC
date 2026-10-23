@@ -2503,7 +2503,7 @@ function renderProductsList() {
         <div class="product-meta-row" style="white-space: nowrap; overflow-x: auto;">
           <span class="prod-price-text">Preço: R$ ${escapeHtml(priceNum)}</span>
           ${costNum ? `<span class="prod-cost-text">Custo: R$ ${escapeHtml(costNum)}</span>` : ''}
-          ${(p.stock !== undefined && p.stock !== null && String(p.stock).trim() !== '') ? `<span class="prod-stock-text">Unid ${escapeHtml(String(p.stock))}</span>` : ''}
+          <span class="prod-stock-text">Unid ${escapeHtml(String((p.stock !== undefined && p.stock !== null && String(p.stock).trim() !== '') ? p.stock : (p.estoque !== undefined ? p.estoque : '0')))}</span>
         </div>
       </div>
       <div class="product-actions">
