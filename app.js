@@ -1316,7 +1316,7 @@ function handleSalesFormSubmit(e) {
     observacao: DOM.inputObservacao.value.trim() || 'Nenhuma',
     comissao: DOM.inputComissao.value.trim() || '0,00',
     lucro: DOM.inputLucro.value.trim() || '0,00',
-    enviarGarantia: DOM.checkEnviarGarantia ? DOM.checkEnviarGarantia.checked : false,
+    enviarGarantia: Boolean(DOM.inputDocumento && DOM.inputDocumento.value.trim()),
     timestamp: Date.now(),
     dateString: dateFormatted
   };
@@ -2050,8 +2050,8 @@ function openWhatsappShareModal(saleData) {
 
   currentGarantiaSaleData = dataToUse;
 
-  // Se a venda tem garantia ativada ou foi solicitada
-  if (dataToUse.enviarGarantia || (DOM.checkEnviarGarantia && DOM.checkEnviarGarantia.checked)) {
+  // Se a venda tem garantia ativada ou possui CPF/CNPJ cadastrado
+  if (dataToUse.enviarGarantia || (dataToUse.documento && dataToUse.documento !== 'Não informado')) {
     if (DOM.garantiaModalAttachment) {
       DOM.garantiaModalAttachment.style.display = 'flex';
     }
@@ -2360,10 +2360,10 @@ async function shareGarantiaOnWhatsapp() {
   }
 }
 
-// Ao enviar pelo botão do WhatsApp (envia os dados e em seguida o PDF caso a garantia esteja marcada)
+// Ao enviar pelo botão do WhatsApp (envia os dados e em seguida o PDF caso a garantia esteja marcada/preenchida)
 async function handleSendWhatsappDirectWithGarantia() {
   const saleData = currentGarantiaSaleData || (appState.sales.length > 0 ? appState.sales[0] : null);
-  const temGarantia = saleData && (saleData.enviarGarantia || (DOM.checkEnviarGarantia && DOM.checkEnviarGarantia.checked));
+  const temGarantia = saleData && (saleData.enviarGarantia || (saleData.documento && saleData.documento !== 'Não informado'));
 
   // 1ª Mensagem: Dados e Resumo da Venda
   executeSendWhatsapp();
