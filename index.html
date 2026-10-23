@@ -86,6 +86,11 @@
             <span>Estoque Itaquera</span>
           </button>
           
+          <button class="nav-tab-btn tab-btn-calculadora" id="tabBtnCalculadora" data-target="tab-calculadora">
+            <span class="tab-calc-label">Calculadora</span>
+            <span class="tab-badge-soon">Em Breve</span>
+          </button>
+
           <button class="nav-tab-btn nav-tab-icon-only" id="tabBtnConfig" data-target="tab-configuracoes" title="Configurações">
             <svg class="gear-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3"></circle>
@@ -563,7 +568,76 @@
         </section>
 
         <!-- ============================================== -->
-        <!-- ABA 3: CONFIGURAÇÕES (ENGRENAGEM)            -->
+        <!-- ABA: CALCULADORA DE TAXAS (SIMULADOR)         -->
+        <!-- ============================================== -->
+        <section class="tab-pane" id="tab-calculadora">
+          <div class="calculadora-container">
+            
+            <!-- Ações do topo da calculadora -->
+            <div class="calc-top-bar">
+              <div class="calc-title-badge-group">
+                <h3>Calculadora de Taxas</h3>
+                <span class="calc-soon-tag">Em Breve</span>
+              </div>
+              <button type="button" class="btn-whatsapp-print" id="btnShareCalcPrint" title="Enviar print da simulação no WhatsApp">
+                <svg viewBox="0 0 32 32" width="17" height="17" fill="#fff">
+                  <path d="M16 2.05c-7.7 0-13.95 6.25-13.95 13.95 0 2.47.65 4.87 1.88 7L2 30l7.21-1.89c2.06 1.12 4.38 1.71 6.79 1.71 7.7 0 13.95-6.25 13.95-13.95S23.7 2.05 16 2.05zm0 25.56c-2.12 0-4.18-.57-5.99-1.64l-.43-.25-4.45 1.17 1.19-4.34-.28-.44c-1.18-1.87-1.8-4.04-1.8-6.26 0-6.4 5.21-11.6 11.6-11.6 6.4 0 11.6 5.21 11.6 11.6 0 6.39-5.21 11.6-11.6 11.6zm6.36-8.69c-.35-.18-2.07-1.02-2.39-1.14-.32-.12-.55-.18-.78.18-.23.35-.9 1.14-1.1 1.38-.2.23-.41.26-.76.09-.35-.18-1.48-.55-2.82-1.74-1.04-.93-1.75-2.08-1.95-2.43-.2-.35-.02-.54.15-.71.16-.16.35-.41.52-.61.18-.2.23-.35.35-.58.12-.23.06-.44-.03-.61-.09-.18-.78-1.88-1.07-2.58-.28-.68-.57-.59-.78-.6-.2-.01-.44-.01-.67-.01-.23 0-.61.09-.93.44-.32.35-1.22 1.19-1.22 2.9 0 1.71 1.25 3.37 1.42 3.6.18.23 2.46 3.76 5.96 5.27.83.36 1.48.58 1.99.74.84.27 1.6.23 2.21.14.67-.1 2.07-.85 2.36-1.66.29-.82.29-1.52.2-1.66-.09-.15-.32-.24-.67-.41z"/>
+                </svg>
+                <span>Enviar Print</span>
+              </button>
+            </div>
+
+            <!-- Card de Simulação (Área que será capturada no print) -->
+            <div class="calc-table-capture-area" id="calcCaptureArea">
+              
+              <!-- Cabeçalho idêntico à foto fornecida -->
+              <div class="calc-excel-header">
+                <div class="calc-selects-col">
+                  <div class="calc-select-box">
+                    <select id="calcModeSelect" class="calc-green-select">
+                      <option value="REPASSAR" selected>REPASSAR</option>
+                      <option value="ASSUMIR">ASSUMIR</option>
+                    </select>
+                    <span class="calc-arrow">▼</span>
+                  </div>
+                  <div class="calc-select-box">
+                    <select id="calcBrandSelect" class="calc-green-select">
+                      <option value="ELO_AMEX" selected>ELO/AMEX</option>
+                      <option value="MASTER_VISA">MASTER/VISA</option>
+                    </select>
+                    <span class="calc-arrow">▼</span>
+                  </div>
+                </div>
+
+                <div class="calc-value-col">
+                  <div class="calc-value-display-wrapper">
+                    <span class="calc-value-prefix">R$</span>
+                    <input type="tel" id="calcValueInput" class="calc-value-input" value="750,00" oninput="formatCurrencyInput(this); window.recalculateSimulator();">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tabela com o estilo da planilha da foto -->
+              <table class="calc-excel-table" id="calcExcelTable">
+                <thead>
+                  <tr>
+                    <th class="th-parcelamento">Parcelamento</th>
+                    <th class="th-total">Total a Cobrar</th>
+                    <th class="th-parcela">Parcela</th>
+                  </tr>
+                </thead>
+                <tbody id="calcTableBody">
+                  <!-- Gerado dinamicamente via JS -->
+                </tbody>
+              </table>
+
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- ABA 4: CONFIGURAÇÕES (ENGRENAGEM)            -->
         <!-- ============================================== -->
         <section class="tab-pane" id="tab-configuracoes">
           <div class="settings-container">

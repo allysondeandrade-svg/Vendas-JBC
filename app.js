@@ -270,8 +270,17 @@ const DOM = {
   // Navigation Tabs
   tabBtnVendas: document.getElementById('tabBtnVendas'),
   tabBtnProdutos: document.getElementById('tabBtnProdutos'),
+  tabBtnCalculadora: document.getElementById('tabBtnCalculadora'),
   tabBtnConfig: document.getElementById('tabBtnConfig'),
   tabPanes: document.querySelectorAll('.tab-pane'),
+  
+  // Calculadora
+  calcModeSelect: document.getElementById('calcModeSelect'),
+  calcBrandSelect: document.getElementById('calcBrandSelect'),
+  calcValueInput: document.getElementById('calcValueInput'),
+  calcTableBody: document.getElementById('calcTableBody'),
+  btnShareCalcPrint: document.getElementById('btnShareCalcPrint'),
+  calcCaptureArea: document.getElementById('calcCaptureArea'),
   
   // Vendas Sub-nav
   subnavFormBtn: document.getElementById('subnavFormBtn'),
@@ -488,6 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderProductsDatalist();
     renderProductsList();
     renderSalesHistory();
+    if (window.recalculateSimulator) window.recalculateSimulator();
     updateDatabaseMetrics();
     applyDefaultSellerIfEmpty();
     updateGoogleSheetStatusUI();
@@ -2580,6 +2590,192 @@ function resetProductForm() {
 }
 
 // ============================================================================
+// CALCULADORA DE TAXAS DE CARTÃO (SIMULADOR DE PARCELAMENTO)
+// ============================================================================
+// Fatores de acréscimo deduzidos das simulações da maquininha:
+const TAXAS_MAQUININHA = {
+  // REPASSAR: Multiplica pelo fator da maquininha para repassar os custos ao cliente
+  REPASSAR: {
+    MASTER_VISA: {
+      DEBITO: 1.02637,
+      1: 1.0401,
+      2: 1.1093,
+      3: 1.1266,
+      4: 1.1440,
+      5: 1.1617,
+      6: 1.1795,
+      7: 1.1976,
+      8: 1.2159,
+      9: 1.2344,
+      10: 1.2529,
+      11: 1.2717,
+      12: 1.2908
+    },
+    ELO_AMEX: {
+      DEBITO: 1.02637,
+      1: 1.0531,
+      2: 1.1267,
+      3: 1.1445,
+      4: 1.1625,
+      5: 1.1807,
+      6: 1.1991,
+      7: 1.2178,
+      8: 1.2368,
+      9: 1.2559,
+      10: 1.2751,
+      11: 1.2945,
+      12: 1.3139
+    }
+  },
+  // ASSUMIR: O cliente paga o valor líquido e o lojista recebe descontado
+  ASSUMIR: {
+    MASTER_VISA: {
+      DEBITO: 1.02637,
+      1: 1.0401,
+      2: 1.1093,
+      3: 1.1266,
+      4: 1.1440,
+      5: 1.1617,
+      6: 1.1795,
+      7: 1.1976,
+      8: 1.2159,
+      9: 1.2344,
+      10: 1.2529,
+      11: 1.2717,
+      12: 1.2908
+    },
+    ELO_AMEX: {
+      DEBITO: 1.02637,
+      1: 1.0531,
+      2: 1.1267,
+      3: 1.1445,
+      4: 1.1625,
+      5: 1.1807,
+      6: 1.1991,
+      7: 1.2178,
+      8: 1.2368,
+      9: 1.2559,
+      10: 1.2751,
+      11: 1.2945,
+      12: 1.3139
+    }
+  }
+};
+
+window.recalculateSimulator = function() {
+  if (!DOM.calcTableBody) return;
+
+  const mode = DOM.calcModeSelect ? DOM.calcModeSelect.value : 'REPASSAR';
+  const brand = DOM.calcBrandSelect ? DOM.calcBrandSelect.value : 'ELO_AMEX';
+  const valorBase = parsePriceNumber(DOM.calcValueInput ? DOM.calcValueInput.value : '750,00');
+
+  const tabelaTaxas = (TAXAS_MAQUININHA[mode] && TAXAS_MAQUININHA[mode][brand]) ? TAXAS_MAQUININHA[mode][brand] : TAXAS_MAQUININHA.REPASSAR.ELO_AMEX;
+
+  const linhas = [
+    { label: 'DÉBITO', parcelas: 1, fator: tabelaTaxas.DEBITO },
+    { label: 'CRÉDITO 1X', parcelas: 1, fator: tabelaTaxas[1] },
+    { label: 'PARCELADO 2X', parcelas: 2, fator: tabelaTaxas[2] },
+    { label: 'PARCELADO 3X', parcelas: 3, fator: tabelaTaxas[3] },
+    { label: 'PARCELADO 4X', parcelas: 4, fator: tabelaTaxas[4] },
+    { label: 'PARCELADO 5X', parcelas: 5, fator: tabelaTaxas[5] },
+    { label: 'PARCELADO 6X', parcelas: 6, fator: tabelaTaxas[6] },
+    { label: 'PARCELADO 7X', parcelas: 7, fator: tabelaTaxas[7] },
+    { label: 'PARCELADO 8X', parcelas: 8, fator: tabelaTaxas[8] },
+    { label: 'PARCELADO 9X', parcelas: 9, fator: tabelaTaxas[9] },
+    { label: 'PARCELADO 10X', parcelas: 10, fator: tabelaTaxas[10] },
+    { label: 'PARCELADO 11X', parcelas: 11, fator: tabelaTaxas[11] },
+    { label: 'PARCELADO 12X', parcelas: 12, fator: tabelaTaxas[12] }
+  ];
+
+  DOM.calcTableBody.innerHTML = linhas.map(l => {
+    let totalCobrar = 0;
+    let valorParcela = 0;
+
+    if (mode === 'REPASSAR') {
+      totalCobrar = valorBase * l.fator;
+      valorParcela = totalCobrar / l.parcelas;
+    } else {
+      // ASSUMIR: O cliente paga o valor nominal (valorBase), e a parcela é valorBase / l.parcelas
+      // (O valor líquido recebido pelo vendedor seria valorBase / l.fator)
+      totalCobrar = valorBase;
+      valorParcela = totalCobrar / l.parcelas;
+    }
+
+    return `
+      <tr>
+        <td class="col-parcelamento">${l.label}</td>
+        <td class="col-total">R$ ${formatBRL(totalCobrar)}</td>
+        <td class="col-parcela">R$ ${formatBRL(valorParcela)}</td>
+      </tr>
+    `;
+  }).join('');
+};
+
+window.shareCalculatorPrintJpeg = async function() {
+  if (!DOM.calcCaptureArea) return;
+  if (typeof html2canvas === 'undefined') {
+    showToast('Biblioteca html2canvas não disponível no momento.', 'error');
+    return;
+  }
+
+  showToast('📸 Gerando imagem da simulação...', 'info');
+
+  try {
+    const canvas = await html2canvas(DOM.calcCaptureArea, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff'
+    });
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        showToast('Erro ao processar imagem.', 'error');
+        return;
+      }
+
+      const mode = DOM.calcModeSelect ? DOM.calcModeSelect.value : 'REPASSAR';
+      const brand = DOM.calcBrandSelect && DOM.calcBrandSelect.value === 'ELO_AMEX' ? 'Elo & Amex' : 'Master & Visa';
+      const valorBase = DOM.calcValueInput ? DOM.calcValueInput.value : '0,00';
+      const fileName = `simulacao_${mode.toLowerCase()}_${valorBase.replace(/\D/g, '')}.jpg`;
+      const file = new File([blob], fileName, { type: 'image/jpeg' });
+
+      // Se o navegador suporta Web Share API com arquivos (mobile Chrome/Safari)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: `Simulação de Cartão - R$ ${valorBase}`,
+            text: `Simulação de Parcelamento (${mode} - ${brand}) no valor de R$ ${valorBase}:`,
+            files: [file]
+          });
+          showToast('Compartilhado com sucesso!', 'success');
+          return;
+        } catch (err) {
+          console.log('Compartilhamento cancelado ou não suportado:', err);
+        }
+      }
+
+      // Fallback: Baixa a imagem JPEG e abre o WhatsApp com o texto da simulação
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      const msg = `📊 *Simulação de Parcelamento*\n💰 *Valor:* R$ ${valorBase}\n💳 *Opção:* ${mode} (${brand})\n\n(A imagem da simulação completa foi baixada no seu aparelho)`;
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+      showToast('Imagem JPEG salva! Anexe-a na conversa do WhatsApp.', 'success');
+    }, 'image/jpeg', 0.95);
+
+  } catch (error) {
+    console.error('Erro ao gerar print:', error);
+    showToast('Não foi possível gerar a imagem da simulação.', 'error');
+  }
+};
+
+// ============================================================================
 // CADASTRO EM MASSA POR PLANILHA
 // ============================================================================
 function downloadProductsTemplateCSV() {
@@ -2912,6 +3108,7 @@ function setupEventListeners() {
   // Tabs Navigation
   DOM.tabBtnVendas.addEventListener('click', () => switchTab('tab-vendas'));
   DOM.tabBtnProdutos.addEventListener('click', () => switchTab('tab-produtos'));
+  if (DOM.tabBtnCalculadora) DOM.tabBtnCalculadora.addEventListener('click', () => switchTab('tab-calculadora'));
   DOM.tabBtnConfig.addEventListener('click', () => switchTab('tab-configuracoes'));
 
   // Vendas Sub-nav
@@ -2989,6 +3186,23 @@ function setupEventListeners() {
   }
   if (DOM.btnFilialItaquera) {
     DOM.btnFilialItaquera.addEventListener('click', () => window.setFilial('Itaquera'));
+  }
+
+  // Calculadora Events
+  if (DOM.calcModeSelect) {
+    DOM.calcModeSelect.addEventListener('change', () => {
+      window.recalculateSimulator();
+      SoundEffects.playPop();
+    });
+  }
+  if (DOM.calcBrandSelect) {
+    DOM.calcBrandSelect.addEventListener('change', () => {
+      window.recalculateSimulator();
+      SoundEffects.playPop();
+    });
+  }
+  if (DOM.btnShareCalcPrint) {
+    DOM.btnShareCalcPrint.addEventListener('click', window.shareCalculatorPrintJpeg);
   }
 
   // History Date Presets
@@ -3281,6 +3495,7 @@ function switchTab(tabId) {
   // Update nav buttons
   if (DOM.tabBtnVendas) DOM.tabBtnVendas.classList.toggle('active', tabId === 'tab-vendas');
   if (DOM.tabBtnProdutos) DOM.tabBtnProdutos.classList.toggle('active', tabId === 'tab-produtos');
+  if (DOM.tabBtnCalculadora) DOM.tabBtnCalculadora.classList.toggle('active', tabId === 'tab-calculadora');
   if (DOM.tabBtnConfig) DOM.tabBtnConfig.classList.toggle('active', tabId === 'tab-configuracoes');
 
   // Update panes
@@ -3290,6 +3505,8 @@ function switchTab(tabId) {
 
   if (tabId === 'tab-produtos') {
     renderProductsList();
+  } else if (tabId === 'tab-calculadora') {
+    if (window.recalculateSimulator) window.recalculateSimulator();
   } else if (tabId === 'tab-configuracoes') {
     renderSellersList();
     renderSellersSelect();
