@@ -2440,18 +2440,26 @@ function renderProductsList() {
     return;
   }
 
-  DOM.productsListGrid.innerHTML = filteredProds.map(p => `
+  DOM.productsListGrid.innerHTML = filteredProds.map(p => {
+    const skuDisplay = p.sku ? `<span class="product-sku-tag">[${escapeHtml(p.sku)}]</span> ` : '';
+    const priceNum = String(p.price).replace('R$ ', '');
+    const costNum = p.cost ? String(p.cost).replace('R$ ', '') : '';
+
+    return `
     <div class="product-item-card" data-prod-id="${p.id}">
       <div class="product-info">
-        <h5>${p.sku ? `<span style="color: var(--accent-blue); font-size: 0.85em;">[${escapeHtml(p.sku)}]</span> ` : ''}${escapeHtml(p.name)}</h5>
+        <h5>${skuDisplay}${escapeHtml(p.name)}</h5>
         <div class="product-meta-row" style="white-space: nowrap; overflow-x: auto;">
-          <span style="margin-right: 8px;">Preço: <strong>R$ ${escapeHtml(p.price)}</strong></span>
-          ${p.cost ? `<span>Custo: R$ ${escapeHtml(p.cost)}</span>` : ''}
+          <span class="prod-price-text">Preço: R$ ${escapeHtml(priceNum)}</span>
+          ${costNum ? `<span class="prod-cost-text">Custo: R$ ${escapeHtml(costNum)}</span>` : ''}
         </div>
       </div>
       <div class="product-actions">
-        <button type="button" class="btn-use-sale" title="Lançar este produto na venda" onclick="window.onUseProductInSale('${p.id}')">
-          Usar na Venda
+        <button type="button" class="btn-icon-action whatsapp-action" title="Compartilhar / Enviar no WhatsApp" onclick="window.onShareProductWhatsapp('${p.id}')">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
         </button>
         <button type="button" class="btn-icon-action" title="Editar" onclick="window.onEditProduct('${p.id}')">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
@@ -2467,8 +2475,21 @@ function renderProductsList() {
         </button>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
+
+window.onShareProductWhatsapp = function(prodId) {
+  const prod = appState.products.find(p => p.id === prodId);
+  if (!prod) return;
+
+  const priceClean = String(prod.price).replace('R$ ', '');
+  const skuText = prod.sku ? `[${prod.sku}] ` : '';
+  const text = `📦 *${skuText}${prod.name}*\n💰 *Preço:* R$ ${priceClean}`;
+  const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+  window.open(whatsappUrl, '_blank');
+  SoundEffects.playPop();
+};
 
 window.onUseProductInSale = function(prodId) {
   const prod = appState.products.find(p => p.id === prodId);

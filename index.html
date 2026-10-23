@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css?v=20261004_4">
+  <link rel="stylesheet" href="styles.css?v=20261022_5">
   
   <!-- PDF Generation Libraries (jsPDF + html2canvas) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -493,18 +493,8 @@
             <div class="section-hero">
               <div class="hero-text">
                 <h3>Estoque Itaquera</h3>
-                <p>Catálogo e consulta de produtos do estoque Itaquera.</p>
               </div>
               <div class="hero-actions-group">
-                <button type="button" class="btn-secondary-sm" id="btnOpenBulkImport" title="Importar produtos em massa por planilha Excel/CSV">
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="12" y1="18" x2="12" y2="12"></line>
-                    <line x1="9" y1="15" x2="15" y2="15"></line>
-                  </svg>
-                  Importar Planilha
-                </button>
                 <button type="button" class="btn-accent-sm" id="btnToggleNewProduct" title="Cadastrar produto individualmente">
                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -556,40 +546,12 @@
             </div>
 
             <!-- Search & Filter bar for products -->
-            <div class="search-input-box mb-2">
+            <div class="search-input-box mb-3">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
               <input type="text" id="productSearchInput" placeholder="Pesquisar produto no catálogo...">
-            </div>
-
-            <!-- Quick tools bar for products spreadsheet -->
-            <div class="product-quick-tools-bar mb-3">
-              <span class="catalog-count-badge" id="catalogCountBadge">0 produtos</span>
-              <div class="tools-actions-flex">
-                <button type="button" class="btn-ghost-sm" id="btnDownloadTemplate" title="Baixar modelo de planilha pronto para preenchimento">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                  Modelo Planilha
-                </button>
-                <button type="button" class="btn-ghost-sm" id="btnSyncProductsSheetQuick" title="Sincronizar produtos com o Google Sheets">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
-                  </svg>
-                  Sincronizar Nuvem
-                </button>
-                <button type="button" class="btn-ghost-sm" id="btnExportProductsCSV" title="Exportar catálogo atual para planilha Excel">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                  </svg>
-                  Exportar CSV
-                </button>
-              </div>
             </div>
 
             <!-- Product cards list -->
@@ -1489,6 +1451,6 @@ function createJsonResponse(obj) {
   <div id="garantiaPdfOffscreen" style="position: absolute; left: -9999px; top: 0; width: 800px; background: #ffffff; padding: 32px; box-sizing: border-box; font-family: 'Inter', Arial, sans-serif; color: #111827;"></div>
 
   <!-- App JavaScript Logic (com cache-busting para atualizar no GitHub Pages) -->
-  <script src="app.js?v=20261022_4"></script>
+  <script src="app.js?v=20261022_5"></script>
 </body>
 </html>
