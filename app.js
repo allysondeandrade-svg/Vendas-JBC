@@ -283,6 +283,9 @@ const DOM = {
   // Sales Form Inputs
   salesForm: document.getElementById('salesForm'),
   inputVendedor: document.getElementById('inputVendedor'),
+  inputFilial: document.getElementById('inputFilial'),
+  btnFilialGuarulhos: document.getElementById('btnFilialGuarulhos'),
+  btnFilialItaquera: document.getElementById('btnFilialItaquera'),
   vendedoresDatalist: document.getElementById('vendedoresDatalist'),
   inputProduto: document.getElementById('inputProduto'),
   productBaseInfoChip: document.getElementById('productBaseInfoChip'),
@@ -1204,8 +1207,10 @@ function clearSalesForm() {
   if (DOM.rowDocumento) {
     DOM.rowDocumento.style.display = 'grid';
   }
-  if (DOM.inputDocumento) {
-    DOM.inputDocumento.value = '';
+  if (window.setFilial) {
+    window.setFilial('Guarulhos');
+  } else if (DOM.inputFilial) {
+    DOM.inputFilial.value = 'Guarulhos';
   }
   applyDefaultSellerIfEmpty();
   
@@ -1300,6 +1305,7 @@ function handleSalesFormSubmit(e) {
   const newSale = {
     id: appState.editingSaleId || ('sale-' + Date.now()),
     vendedor: DOM.inputVendedor.value.trim(),
+    filial: DOM.inputFilial ? DOM.inputFilial.value.trim() || 'Guarulhos' : 'Guarulhos',
     itens: items, // Save items array
     produto: items.map(item => item.produto).join(', '), // fallback text
     preco: formatBRL(items.reduce((acc, item) => acc + item.subtotal, 0)), // fallback text
@@ -1516,6 +1522,7 @@ function renderSalesHistory() {
       
       <div class="sale-card-details">
         <span class="sale-tag">👤 <strong>${escapeHtml(sale.vendedor)}</strong></span>
+        ${sale.filial ? `<span class="sale-tag" style="font-weight: 600; color: var(--primary);">🏢 ${escapeHtml(sale.filial)}</span>` : ''}
         ${sale.cliente && sale.cliente !== 'Não informado' ? `<span class="sale-tag">🤝 ${escapeHtml(sale.cliente)}</span>` : ''}
         ${sale.pagamento && sale.pagamento !== 'Não informado' ? `<span class="sale-tag">💳 ${escapeHtml(sale.pagamento)}</span>` : ''}
         <span class="sale-tag" style="color: #f59e0b;">💼 Comiss: R$ ${escapeHtml(sale.comissao)}</span>
@@ -1681,6 +1688,9 @@ window.onEditSale = function(saleId) {
   }
 
   DOM.inputVendedor.value = sale.vendedor;
+  if (window.setFilial) {
+    window.setFilial(sale.filial || 'Guarulhos');
+  }
   
   const container = document.getElementById('productsContainer');
   if (container) {
@@ -2939,6 +2949,25 @@ function setupEventListeners() {
       }
       e.target.value = v;
     });
+  }
+
+  // Toggle de Unidade/Filial (Guarulhos / Itaquera) - Exclusivo
+  window.setFilial = function(filialName) {
+    if (DOM.inputFilial) DOM.inputFilial.value = filialName;
+    if (DOM.btnFilialGuarulhos) {
+      DOM.btnFilialGuarulhos.classList.toggle('active', filialName === 'Guarulhos');
+    }
+    if (DOM.btnFilialItaquera) {
+      DOM.btnFilialItaquera.classList.toggle('active', filialName === 'Itaquera');
+    }
+    SoundEffects.playPop();
+  };
+
+  if (DOM.btnFilialGuarulhos) {
+    DOM.btnFilialGuarulhos.addEventListener('click', () => window.setFilial('Guarulhos'));
+  }
+  if (DOM.btnFilialItaquera) {
+    DOM.btnFilialItaquera.addEventListener('click', () => window.setFilial('Itaquera'));
   }
 
   // History Date Presets

@@ -377,7 +377,7 @@ html, body {
 
 .tabs-container {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.2fr;
+  grid-template-columns: 1fr 1.6fr 52px;
   gap: 6px;
   background: rgba(0, 0, 0, 0.04);
   padding: 4px;
@@ -395,7 +395,7 @@ html, body {
   justify-content: center;
   padding: 9px 8px;
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--text-secondary);
   background: transparent;
@@ -404,6 +404,13 @@ html, body {
   cursor: pointer;
   transition: all var(--transition-fast);
   white-space: nowrap;
+}
+
+.nav-tab-icon-only {
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tab-text-icon {
@@ -428,6 +435,52 @@ html, body {
 
 .nav-tab-btn:active {
   transform: scale(0.96);
+}
+
+/* Toggle Unidade (Guarulhos / Itaquera) */
+.filial-toggle-group {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.btn-filial-pill {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--card-border);
+  background: var(--bg-body);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.btn-filial-pill:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-filial-pill.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 3px 8px var(--primary-glow);
+}
+
+.btn-filial-pill.active svg {
+  display: inline-block !important;
+}
+
+.btn-filial-pill:not(.active) svg {
+  display: none !important;
 }
 
 /* ==========================================================================

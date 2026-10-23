@@ -75,7 +75,7 @@
       
 
 
-      <!-- App Header / Tabs (Vendas | Produtos | Configurações) as required -->
+      <!-- App Header / Tabs (Vendas | Estoque Itaquera | Configurações) -->
       <nav class="app-top-nav" aria-label="Navegação Principal">
         <div class="tabs-container">
           <button class="nav-tab-btn active" id="tabBtnVendas" data-target="tab-vendas">
@@ -83,17 +83,14 @@
           </button>
           
           <button class="nav-tab-btn" id="tabBtnProdutos" data-target="tab-produtos">
-            <span>Produtos</span>
+            <span>Estoque Itaquera</span>
           </button>
           
-          <button class="nav-tab-btn" id="tabBtnConfig" data-target="tab-configuracoes">
-            <span class="tab-text-icon">
-              Configurações
-              <svg class="gear-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-              </svg>
-            </span>
+          <button class="nav-tab-btn nav-tab-icon-only" id="tabBtnConfig" data-target="tab-configuracoes" title="Configurações">
+            <svg class="gear-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
           </button>
         </div>
       </nav>
@@ -154,6 +151,28 @@
                     <!-- Populated dynamically with Junior, Alexandre, Jeremias, Allyson, Johnathan -->
                   </datalist>
                   <span class="field-feedback"></span>
+                </div>
+              </div>
+
+              <!-- Unidade / Estoque Obrigatório (Guarulhos selecionado como preferência) -->
+              <div class="form-row" id="row-filial">
+                <label class="form-label">
+                  Unidade<span class="required-star">*</span>
+                </label>
+                <div class="input-wrapper filial-toggle-group">
+                  <button type="button" class="btn-filial-pill active" id="btnFilialGuarulhos" data-filial="Guarulhos">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M20 6L9 17l-5-5"/>
+                    </svg>
+                    Guarulhos
+                  </button>
+                  <button type="button" class="btn-filial-pill" id="btnFilialItaquera" data-filial="Itaquera">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="display: none;">
+                      <path d="M20 6L9 17l-5-5"/>
+                    </svg>
+                    Itaquera
+                  </button>
+                  <input type="hidden" id="inputFilial" name="filial" value="Guarulhos" required>
                 </div>
               </div>
 
@@ -473,8 +492,8 @@
             
             <div class="section-hero">
               <div class="hero-text">
-                <h3>Catálogo de Produtos</h3>
-                <p>Cadastre seus produtos para preenchimento rápido nas vendas.</p>
+                <h3>Estoque Itaquera</h3>
+                <p>Catálogo e consulta de produtos do estoque Itaquera.</p>
               </div>
               <div class="hero-actions-group">
                 <button type="button" class="btn-secondary-sm" id="btnOpenBulkImport" title="Importar produtos em massa por planilha Excel/CSV">
@@ -1470,6 +1489,6 @@ function createJsonResponse(obj) {
   <div id="garantiaPdfOffscreen" style="position: absolute; left: -9999px; top: 0; width: 800px; background: #ffffff; padding: 32px; box-sizing: border-box; font-family: 'Inter', Arial, sans-serif; color: #111827;"></div>
 
   <!-- App JavaScript Logic (com cache-busting para atualizar no GitHub Pages) -->
-  <script src="app.js?v=20261022_3"></script>
+  <script src="app.js?v=20261022_4"></script>
 </body>
 </html>
