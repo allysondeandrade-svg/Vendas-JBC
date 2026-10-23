@@ -2127,7 +2127,36 @@ function renderGarantiaDocumentHtml(saleData) {
     : [{ produto: saleData.produto || 'Produto JBC', preco: parsePriceNumber(saleData.preco || saleData.total) }];
 
   const totalFormatado = String(saleData.total || saleData.preco || '0,00').replace('R$ ', '');
-  const dataVenda = saleData.dateString || new Date().toLocaleDateString('pt-BR');
+  
+  // Formatar data da compra rigorosamente no formato dd/mm/aaaa
+  let dataVenda = '';
+  if (saleData.timestamp) {
+    const d = new Date(saleData.timestamp);
+    if (!isNaN(d.getTime())) {
+      dataVenda = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+  }
+  if (!dataVenda && saleData.dateString) {
+    const raw = String(saleData.dateString).trim();
+    const brMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if (brMatch) {
+      const d = brMatch[1].padStart(2, '0');
+      const m = brMatch[2].padStart(2, '0');
+      let y = brMatch[3];
+      if (y.length === 2) y = '20' + y;
+      dataVenda = `${d}/${m}/${y}`;
+    } else {
+      const parsed = new Date(raw);
+      if (!isNaN(parsed.getTime())) {
+        dataVenda = `${String(parsed.getDate()).padStart(2, '0')}/${String(parsed.getMonth() + 1).padStart(2, '0')}/${parsed.getFullYear()}`;
+      }
+    }
+  }
+  if (!dataVenda) {
+    const now = new Date();
+    dataVenda = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+  }
+
   const clienteNome = saleData.cliente && saleData.cliente !== 'Não informado' ? saleData.cliente : 'Cliente';
   const clienteDoc = saleData.documento && saleData.documento !== 'Não informado' ? saleData.documento : 'Não informado';
   const vendedorNome = saleData.vendedor || 'JBC Eletro';
@@ -2286,9 +2315,9 @@ async function generateGarantiaPdfBlob(saleData) {
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     ddmm = `${dd}-${mm}`;
   } else if (saleData.dateString) {
-    const parts = saleData.dateString.split(/[\/\s-]/);
-    if (parts.length >= 2) {
-      ddmm = `${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+    const brMatch = String(saleData.dateString).trim().match(/^(\d{1,2})\/(\d{1,2})/);
+    if (brMatch) {
+      ddmm = `${brMatch[1].padStart(2, '0')}-${brMatch[2].padStart(2, '0')}`;
     }
   }
   if (!ddmm) {
@@ -2296,8 +2325,19 @@ async function generateGarantiaPdfBlob(saleData) {
     ddmm = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
 
-  // Nome do arquivo solicitado: Garantia JBC ELETRO dd/mm (com traço no arquivo para compatibilidade com SOs)
-  const filename = `Garantia JBC ELETRO ${ddmm}.pdf`;
+  // Nome do cliente limpo para o nome do arquivo (ex: "Ronaldo")
+  let clienteNome = (saleData.cliente && saleData.cliente !== 'Não informado') ? String(saleData.cliente).trim() : 'Cliente';
+  clienteNome = clienteNome.replace(/[/\\?%*:|"<>]/g, '').trim();
+
+  // Código aleatório de 3 caracteres alfanuméricos em minúsculas (ex: "1hm", "jd5")
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+  let rand3 = '';
+  for (let i = 0; i < 3; i++) {
+    rand3 += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  // Nome do arquivo solicitado: "Garantia JBC ELETRO Ronaldo 20-10 jd5.pdf"
+  const filename = `Garantia JBC ELETRO ${clienteNome} ${ddmm} ${rand3}.pdf`;
 
   return { pdf, filename };
 }
