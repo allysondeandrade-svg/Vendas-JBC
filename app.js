@@ -1202,7 +1202,7 @@ function clearSalesForm() {
     DOM.checkEnviarGarantia.checked = false;
   }
   if (DOM.rowDocumento) {
-    DOM.rowDocumento.style.display = 'none';
+    DOM.rowDocumento.style.display = 'grid';
   }
   if (DOM.inputDocumento) {
     DOM.inputDocumento.value = '';
@@ -1712,7 +1712,9 @@ window.onEditSale = function(saleId) {
   DOM.inputPagamento.value = sale.pagamento !== 'Não informado' ? sale.pagamento : '';
   if (DOM.checkEnviarGarantia) {
     DOM.checkEnviarGarantia.checked = Boolean(sale.enviarGarantia);
-    if (DOM.rowDocumento) DOM.rowDocumento.style.display = sale.enviarGarantia ? 'grid' : 'none';
+  }
+  if (DOM.rowDocumento) {
+    DOM.rowDocumento.style.display = 'grid';
   }
   const inputParcelas = document.getElementById('inputParcelas');
   if (inputParcelas) {
@@ -2908,16 +2910,34 @@ function setupEventListeners() {
   if (DOM.btnCalcComissao) DOM.btnCalcComissao.addEventListener('click', resetToProductRules);
   if (DOM.btnCalcLucro) DOM.btnCalcLucro.addEventListener('click', resetToProductRules);
 
-  // Checkbox Enviar Garantia (Alterna campo de CPF/CNPJ)
+  // Checkbox Enviar Garantia
   if (DOM.checkEnviarGarantia) {
     DOM.checkEnviarGarantia.addEventListener('change', (e) => {
-      if (DOM.rowDocumento) {
-        DOM.rowDocumento.style.display = e.target.checked ? 'grid' : 'none';
-        if (e.target.checked && DOM.inputDocumento) {
-          DOM.inputDocumento.focus();
-        }
+      if (e.target.checked && DOM.inputDocumento && !DOM.inputDocumento.value) {
+        DOM.inputDocumento.focus();
       }
       SoundEffects.playPop();
+    });
+  }
+
+  // Máscara dinâmica CPF / CNPJ
+  if (DOM.inputDocumento) {
+    DOM.inputDocumento.addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '');
+      if (v.length <= 11) {
+        // CPF: 000.000.000-00
+        v = v.replace(/(\d{3})(\d)/, '$1.$2');
+        v = v.replace(/(\d{3})(\d)/, '$1.$2');
+        v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+      } else {
+        // CNPJ: 00.000.000/0000-00
+        v = v.substring(0, 14);
+        v = v.replace(/^(\d{2})(\d)/, '$1.$2');
+        v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+        v = v.replace(/\.(\d{3})(\d)/, '.$1/$2');
+        v = v.replace(/(\d{4})(\d)/, '$1-$2');
+      }
+      e.target.value = v;
     });
   }
 
