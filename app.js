@@ -390,6 +390,7 @@ const DOM = {
   prodPrice: document.getElementById('prodPrice'),
   prodCost: document.getElementById('prodCost'),
   prodBasePrice: document.getElementById('prodBasePrice'),
+  prodStock: document.getElementById('prodStock'),
   prodCategory: document.getElementById('prodCategory'),
   btnCancelProduct: document.getElementById('btnCancelProduct'),
   productsListGrid: document.getElementById('productsListGrid'),
@@ -2462,6 +2463,7 @@ function renderProductsList() {
         <div class="product-meta-row" style="white-space: nowrap; overflow-x: auto;">
           <span class="prod-price-text">Preço: R$ ${escapeHtml(priceNum)}</span>
           ${costNum ? `<span class="prod-cost-text">Custo: R$ ${escapeHtml(costNum)}</span>` : ''}
+          ${(p.stock !== undefined && p.stock !== null && String(p.stock).trim() !== '') ? `<span class="prod-stock-text">Unid ${escapeHtml(String(p.stock))}</span>` : ''}
         </div>
       </div>
       <div class="product-actions">
@@ -2527,6 +2529,7 @@ window.onEditProduct = function(prodId) {
   DOM.prodPrice.value = prod.price;
   DOM.prodCost.value = prod.cost || '';
   DOM.prodBasePrice.value = prod.basePrice || prod.price || '';
+  if (DOM.prodStock) DOM.prodStock.value = (prod.stock !== undefined && prod.stock !== null) ? prod.stock : '';
   DOM.prodCategory.value = prod.category || '';
 
   DOM.productFormTitle.textContent = 'Editar Produto';
@@ -2551,6 +2554,7 @@ function handleProductFormSubmit(e) {
   const price = DOM.prodPrice.value.trim();
   const cost = DOM.prodCost.value.trim();
   const basePrice = DOM.prodBasePrice.value.trim();
+  const stock = DOM.prodStock ? DOM.prodStock.value.trim() : '';
   const category = DOM.prodCategory.value.trim();
 
   if (!name || !price || !basePrice) {
@@ -2561,7 +2565,7 @@ function handleProductFormSubmit(e) {
   if (id) {
     const index = appState.products.findIndex(p => p.id === id);
     if (index !== -1) {
-      appState.products[index] = { ...appState.products[index], name, price, cost, basePrice, category };
+      appState.products[index] = { ...appState.products[index], name, price, cost, basePrice, stock, category };
       showToast('Produto atualizado com sucesso!', 'success');
     }
   } else {
@@ -2571,6 +2575,7 @@ function handleProductFormSubmit(e) {
       price,
       cost,
       basePrice,
+      stock,
       category
     };
     appState.products.unshift(newProd);

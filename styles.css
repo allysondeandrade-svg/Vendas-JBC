@@ -1584,6 +1584,11 @@ html, body {
   font-weight: 400;
 }
 
+.product-meta-row .prod-stock-text {
+  color: #64748b;
+  font-weight: 400;
+}
+
 .product-actions {
   display: flex;
   align-items: center;
