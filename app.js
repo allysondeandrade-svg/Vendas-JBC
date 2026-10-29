@@ -461,6 +461,9 @@ const DOM = {
   btnOpenScriptGuideModal: document.getElementById('btnOpenScriptGuideModal'),
   cfgAutoSyncSheet: document.getElementById('cfgAutoSyncSheet'),
   btnSyncProductsSheetQuick: document.getElementById('btnSyncProductsSheetQuick'),
+  btnSyncQuickHistory: document.getElementById('btnSyncQuickHistory'),
+  syncHistoryIcon: document.getElementById('syncHistoryIcon'),
+  syncHistoryBtnText: document.getElementById('syncHistoryBtnText'),
 
   // Google Apps Script Guide Modal
   appsScriptGuideModalBackdrop: document.getElementById('appsScriptGuideModalBackdrop'),
@@ -3097,6 +3100,14 @@ function showSalesHistory() {
   DOM.salesFormSection.style.display = 'none';
   DOM.salesHistorySection.style.display = 'block';
   renderSalesHistory();
+  // Auto sync on history tab click
+  if (appState.config.googleSheetUrl && appState.config.autoSyncSheet) {
+    const lastSync = window._lastSheetAutoFetch || 0;
+    if (Date.now() - lastSync > 30000) {
+      window._lastSheetAutoFetch = Date.now();
+      fetchDataFromGoogleSheets(true);
+    }
+  }
   SoundEffects.playPop();
 }
 
@@ -3448,6 +3459,7 @@ function setupEventListeners() {
   if (DOM.btnPushProductsToSheet) DOM.btnPushProductsToSheet.addEventListener('click', () => syncProductsToGoogleSheets(appState.products));
   if (DOM.btnOpenScriptGuideModal) DOM.btnOpenScriptGuideModal.addEventListener('click', openAppsScriptGuideModal);
   if (DOM.btnSyncProductsSheetQuick) DOM.btnSyncProductsSheetQuick.addEventListener('click', () => fetchDataFromGoogleSheets(false));
+  if (DOM.btnSyncQuickHistory) DOM.btnSyncQuickHistory.addEventListener('click', () => triggerQuickHistorySync());
 
   if (DOM.btnCloseScriptGuideModal) DOM.btnCloseScriptGuideModal.addEventListener('click', closeAppsScriptGuideModal);
   if (DOM.btnDoneScriptGuide) DOM.btnDoneScriptGuide.addEventListener('click', closeAppsScriptGuideModal);
@@ -3670,6 +3682,18 @@ async function syncProductsToGoogleSheets(products) {
   } catch (err) {
     console.warn('Erro ao salvar produtos no Google Sheets:', err);
     updateGoogleSheetStatusUI('connected');
+  }
+}
+
+
+async function triggerQuickHistorySync() {
+  if (DOM.btnSyncQuickHistory) DOM.btnSyncQuickHistory.classList.add('syncing');
+  if (DOM.syncHistoryBtnText) DOM.syncHistoryBtnText.textContent = 'Buscando...';
+  try {
+    await fetchDataFromGoogleSheets(false);
+  } finally {
+    if (DOM.btnSyncQuickHistory) DOM.btnSyncQuickHistory.classList.remove('syncing');
+    if (DOM.syncHistoryBtnText) DOM.syncHistoryBtnText.textContent = 'Atualizar';
   }
 }
 
