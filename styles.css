@@ -3838,3 +3838,20 @@ html, body {
 [data-theme="dark"] .product-suggestion-item .item-stock {
   color: #94a3b8;
 }
+
+
+/* Garante que o dropdown de autocomplete fique no topo no celular */
+.product-autocomplete-wrapper {
+  position: relative !important;
+  z-index: 100 !important;
+}
+
+.product-suggestions-dropdown {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 999999 !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25) !important;
+  background-color: var(--card-bg, #ffffff) !important;
+}
