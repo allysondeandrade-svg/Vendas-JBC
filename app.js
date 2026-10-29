@@ -1,3 +1,126 @@
+
+// ============================================================================
+// CUSTOM AUTOCOMPLETE ENGINE PARA PRODUTOS (PESQUISA EM TEMPO REAL)
+// ============================================================================
+function setupProductAutocomplete(inputEl) {
+  if (!inputEl) return;
+  const wrapper = inputEl.closest('.product-autocomplete-wrapper');
+  if (!wrapper) return;
+  
+  let dropdown = wrapper.querySelector('.product-suggestions-dropdown');
+  if (!dropdown) {
+    dropdown = document.createElement('ul');
+    dropdown.className = 'product-suggestions-dropdown';
+    dropdown.style.display = 'none';
+    wrapper.appendChild(dropdown);
+  }
+
+  function highlightMatch(text, query) {
+    if (!query) return escapeHtml(text);
+    const escapedQuery = query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    return escapeHtml(text).replace(regex, '<mark>$1</mark>');
+  }
+
+  function renderDropdown(items, query) {
+    if (!items || items.length === 0) {
+      if (query.length >= 1) {
+        dropdown.innerHTML = '<li class="product-suggestions-empty">Nenhum produto encontrado com "' + escapeHtml(query) + '"</li>';
+        dropdown.style.display = 'block';
+      } else {
+        dropdown.style.display = 'none';
+      }
+      return;
+    }
+
+    dropdown.innerHTML = items.map((p, idx) => {
+      const displayVal = p.sku ? `${p.sku} - ${p.name}` : p.name;
+      const skuTag = p.sku ? `<span class="item-sku">${escapeHtml(p.sku)}</span>` : '';
+      const precoNum = String(p.price || '0').replace('R$ ', '');
+      const stock = (p.stock !== undefined && p.stock !== null && String(p.stock).trim() !== '') ? p.stock : (p.estoque !== undefined ? p.estoque : '');
+      const stockTag = stock !== '' ? `<span class="item-stock">Estoque: ${escapeHtml(String(stock))} unid</span>` : '';
+
+      return `
+        <li class="product-suggestion-item" data-index="${idx}" data-val="${escapeHtml(displayVal)}" data-price="${escapeHtml(String(p.price))}">
+          <div class="item-title">${highlightMatch(displayVal, query)}</div>
+          <div class="item-details">
+            <span class="item-price">R$ ${escapeHtml(precoNum)}</span>
+            ${skuTag}
+            ${stockTag}
+          </div>
+        </li>
+      `;
+    }).join('');
+
+    dropdown.style.display = 'block';
+
+    // Click events nos itens
+    dropdown.querySelectorAll('.product-suggestion-item').forEach(itemEl => {
+      itemEl.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // Impede o blur prematuro
+        selectItem(itemEl);
+      });
+      itemEl.addEventListener('touchstart', (e) => {
+        // Suporte perfeito a toque em smartphone
+        e.stopPropagation();
+      }, { passive: true });
+      itemEl.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        selectItem(itemEl);
+      });
+    });
+  }
+
+  function selectItem(itemEl) {
+    const val = itemEl.getAttribute('data-val');
+    inputEl.value = val;
+    dropdown.style.display = 'none';
+    
+    // Atualiza preço e recálculos
+    onProductInputChange({ target: inputEl });
+    SoundEffects.playPop();
+  }
+
+  function filterAndShow() {
+    const query = inputEl.value.trim().toLowerCase();
+    if (!query) {
+      // Se estiver vazio, mostra os primeiros 10 produtos recentes
+      renderDropdown(appState.products.slice(0, 8), '');
+      return;
+    }
+
+    const matches = appState.products.filter(p => {
+      const name = (p.name || '').toLowerCase();
+      const sku = (p.sku || '').toLowerCase();
+      const cat = (p.category || '').toLowerCase();
+      return name.includes(query) || sku.includes(query) || cat.includes(query);
+    });
+
+    renderDropdown(matches.slice(0, 15), query);
+  }
+
+  inputEl.addEventListener('input', () => {
+    filterAndShow();
+  });
+
+  inputEl.addEventListener('focus', () => {
+    filterAndShow();
+  });
+
+  inputEl.addEventListener('blur', () => {
+    // Pequeno delay para permitir o clique/touch
+    setTimeout(() => {
+      dropdown.style.display = 'none';
+    }, 250);
+  });
+}
+
+function initAllProductAutocompletes() {
+  document.querySelectorAll('.input-produto').forEach(input => {
+    setupProductAutocomplete(input);
+  });
+}
+
 /**
  * REGISTRO DE VENDAS - MOBILE APP
  * Full application logic:
@@ -499,6 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Products & Sales setup
     renderProductsDatalist();
+    initAllProductAutocompletes();
     renderProductsList();
     renderSalesHistory();
     if (window.recalculateSimulator) window.recalculateSimulator();
@@ -1096,7 +1220,10 @@ window.addEmptyProductRow = function() {
         Produto<span class="required-star">*</span>
       </label>
       <div class="input-wrapper" style="display: flex; gap: 8px; align-items: center;">
-        <input type="text" id="inputProduto_${index}" name="produto" class="form-input input-produto" placeholder="Ex: Fone Bluetooth" list="produtosDatalist">
+        <div class="product-autocomplete-wrapper">
+          <input type="text" id="inputProduto_${index}" name="produto" class="form-input input-produto" placeholder="Ex: Fritadeira, Fogão..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" required>
+          <ul class="product-suggestions-dropdown" style="display: none;"></ul>
+        </div>
         <button type="button" class="btn-remove-product" onclick="window.removeProductRow(this)" title="Remover este produto">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -1123,6 +1250,7 @@ window.addEmptyProductRow = function() {
   const inputProduto = newRow.querySelector('.input-produto');
   inputProduto.addEventListener('input', onProductInputChange);
   inputProduto.addEventListener('change', onProductInputChange);
+  setupProductAutocomplete(inputProduto);
   
   const inputPreco = newRow.querySelector('.input-preco');
   inputPreco.addEventListener('input', onSellingPriceInputChange);
@@ -3805,3 +3933,10 @@ function escapeHtml(text) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+
+// Close all product dropdowns on outside click
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.product-autocomplete-wrapper')) {
+    document.querySelectorAll('.product-suggestions-dropdown').forEach(d => d.style.display = 'none');
+  }
+});

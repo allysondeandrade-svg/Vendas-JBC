@@ -190,7 +190,10 @@
                       Produto<span class="required-star">*</span>
                     </label>
                     <div class="input-wrapper" style="display: flex; gap: 8px; align-items: center;">
-                      <input type="text" id="inputProduto_0" name="produto" class="form-input input-produto" placeholder="Ex: Tênis Air Max" list="produtosDatalist" required>
+                      <div class="product-autocomplete-wrapper">
+                        <input type="text" id="inputProduto_0" name="produto" class="form-input input-produto" placeholder="Ex: Fritadeira, Fogão..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" required>
+                        <ul class="product-suggestions-dropdown" style="display: none;"></ul>
+                      </div>
                       <datalist id="produtosDatalist"></datalist>
                       <button type="button" class="btn-add-product" id="btnAddProductRow" title="Adicionar mais um produto">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
