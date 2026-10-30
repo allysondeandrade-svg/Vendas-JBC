@@ -35,6 +35,9 @@ function setupProductAutocomplete(inputEl) {
       if (query && query.length >= 1) {
         dropdown.innerHTML = '<li class="product-suggestions-empty">Nenhum produto encontrado com "' + escapeHtml(query) + '"</li>';
         dropdown.style.display = 'block';
+    wrapper.classList.add('is-open');
+    const entryEl = wrapper.closest('.product-entry');
+    if (entryEl) entryEl.classList.add('has-open-dropdown');
       } else {
         dropdown.style.display = 'none';
       }
@@ -59,6 +62,9 @@ function setupProductAutocomplete(inputEl) {
     }).join('');
 
     dropdown.style.display = 'block';
+    wrapper.classList.add('is-open');
+    const entryEl = wrapper.closest('.product-entry');
+    if (entryEl) entryEl.classList.add('has-open-dropdown');
 
     dropdown.querySelectorAll('.product-suggestion-item').forEach(itemEl => {
       function onPick(e) {
@@ -79,6 +85,9 @@ function setupProductAutocomplete(inputEl) {
     const val = itemEl.getAttribute('data-val');
     inputEl.value = val;
     dropdown.style.display = 'none';
+    wrapper.classList.remove('is-open');
+    const entryEl = wrapper.closest('.product-entry');
+    if (entryEl) entryEl.classList.remove('has-open-dropdown');
     isInteractingWithDropdown = false;
     
     onProductInputChange({ target: inputEl });
@@ -113,6 +122,9 @@ function setupProductAutocomplete(inputEl) {
     setTimeout(() => {
       if (!isInteractingWithDropdown) {
         dropdown.style.display = 'none';
+        wrapper.classList.remove('is-open');
+        const entryEl = wrapper.closest('.product-entry');
+        if (entryEl) entryEl.classList.remove('has-open-dropdown');
       }
       isInteractingWithDropdown = false;
     }, 350);
@@ -5621,5 +5633,7 @@ function escapeHtml(text) {
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.product-autocomplete-wrapper')) {
     document.querySelectorAll('.product-suggestions-dropdown').forEach(d => d.style.display = 'none');
+    document.querySelectorAll('.product-autocomplete-wrapper').forEach(w => w.classList.remove('is-open'));
+    document.querySelectorAll('.product-entry').forEach(pe => pe.classList.remove('has-open-dropdown'));
   }
 });

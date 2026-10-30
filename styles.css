@@ -3855,3 +3855,60 @@ html, body {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25) !important;
   background-color: var(--card-bg, #ffffff) !important;
 }
+
+
+/* ==========================================================================
+   CORREÇÃO DEFINITIVA DE EMPILHAMENTO E ROLAGEM TOUCH DO AUTOCOMPLETE
+   ========================================================================== */
+.product-entry {
+  position: relative;
+  z-index: 10;
+}
+
+.product-entry:focus-within,
+.product-entry.has-open-dropdown {
+  z-index: 999999 !important;
+}
+
+.product-autocomplete-wrapper {
+  position: relative !important;
+  z-index: 50;
+  width: 100%;
+}
+
+.product-autocomplete-wrapper:focus-within,
+.product-autocomplete-wrapper.is-open {
+  z-index: 999999 !important;
+}
+
+.form-row:focus-within {
+  z-index: 999999 !important;
+  position: relative;
+}
+
+.product-suggestions-dropdown {
+  position: absolute !important;
+  top: calc(100% + 4px) !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-height: 280px !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  touch-action: pan-y !important;
+  background-color: #ffffff !important;
+  border: 2px solid #10b981 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35) !important;
+  z-index: 9999999 !important;
+  padding: 6px !important;
+  list-style: none !important;
+  margin: 0 !important;
+}
+
+[data-theme="dark"] .product-suggestions-dropdown {
+  background-color: #1e293b !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65) !important;
+}
