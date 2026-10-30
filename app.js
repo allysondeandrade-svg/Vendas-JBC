@@ -11,6 +11,15 @@ function normalizeText(str) {
     .trim();
 }
 
+function getCleanProductName(product) {
+  if (!product) return '';
+  const raw = typeof product === 'string' ? product : (product.name || '');
+  if (raw.includes(' - ')) {
+    return raw.split(' - ').slice(1).join(' - ').trim();
+  }
+  return raw.trim();
+}
+
 function setupProductAutocomplete(inputEl) {
   if (!inputEl) return;
   const wrapper = inputEl.closest('.product-autocomplete-wrapper');
@@ -104,7 +113,8 @@ function setupProductAutocomplete(inputEl) {
     }
 
     dropdown.innerHTML = items.map((p, idx) => {
-      const displayVal = p.sku ? (p.sku + ' - ' + p.name) : p.name;
+      // Exibe APENAS o que aparece após o hífen (ex: "Fritadeira Redonda 5L")
+      const displayVal = getCleanProductName(p);
       const highlightedName = highlightMatch(displayVal, query);
 
       return '<li class="sheets-dropdown-item" data-index="' + idx + '" data-val="' + escapeHtml(displayVal) + '">' +
@@ -179,23 +189,41 @@ function setupProductAutocomplete(inputEl) {
     }
 
     const matches = list.filter(p => {
-      const nameNorm = normalizeText(p.name);
+      const cleanName = getCleanProductName(p);
+      const nameNorm = normalizeText(cleanName);
+      const rawNameNorm = normalizeText(p.name);
       const skuNorm = normalizeText(p.sku);
       const catNorm = normalizeText(p.category);
-      return nameNorm.includes(query) || skuNorm.includes(query) || catNorm.includes(query);
+      return nameNorm.includes(query) || rawNameNorm.includes(query) || skuNorm.includes(query) || catNorm.includes(query);
     });
 
     renderDropdown(matches, rawVal.trim());
   }
 
-  // Eventos de digitação e foco
-  inputEl.addEventListener('input', () => filterAndShow(false));
-  inputEl.addEventListener('keyup', () => filterAndShow(false));
-  inputEl.addEventListener('focus', () => filterAndShow(true));
-  inputEl.addEventListener('click', () => filterAndShow(true));
+  // Eventos de digitação e foco (idempotente)
+  if (!inputEl._hasProductAutocompleteBound) {
+    inputEl._hasProductAutocompleteBound = true;
+    inputEl.addEventListener('input', () => filterAndShow(false));
+    inputEl.addEventListener('keyup', () => filterAndShow(false));
+    inputEl.addEventListener('focus', () => filterAndShow(true));
+    inputEl.addEventListener('click', () => filterAndShow(true));
+
+    inputEl.addEventListener('blur', () => {
+      setTimeout(() => {
+        if (!isInteractingWithDropdown) {
+          dropdown.style.display = 'none';
+          wrapper.classList.remove('is-open');
+          const entryEl = wrapper.closest('.product-entry');
+          if (entryEl) entryEl.classList.remove('has-open-dropdown');
+        }
+        isInteractingWithDropdown = false;
+      }, 350);
+    });
+  }
 
   // Clique na setinha de validação
-  if (toggleBtn) {
+  if (toggleBtn && !toggleBtn._hasToggleBound) {
+    toggleBtn._hasToggleBound = true;
     function onToggle(e) {
       if (e) {
         e.preventDefault();
@@ -218,17 +246,7 @@ function setupProductAutocomplete(inputEl) {
     toggleBtn.addEventListener('touchstart', onToggle, { passive: false });
   }
 
-  inputEl.addEventListener('blur', () => {
-    setTimeout(() => {
-      if (!isInteractingWithDropdown) {
-        dropdown.style.display = 'none';
-        wrapper.classList.remove('is-open');
-        const entryEl = wrapper.closest('.product-entry');
-        if (entryEl) entryEl.classList.remove('has-open-dropdown');
-      }
-      isInteractingWithDropdown = false;
-    }, 350);
-  });
+  inputEl._openProductDropdown = () => filterAndShow(true);
 }
 
 function initAllProductAutocompletes() {
@@ -236,6 +254,29 @@ function initAllProductAutocompletes() {
     setupProductAutocomplete(input);
   });
 }
+
+// Delegação global para garantir que o autocomplete e a lista abram imediatamente no primeiro campo ou em qualquer outro
+document.addEventListener('focusin', (e) => {
+  if (e.target && e.target.classList && e.target.classList.contains('input-produto')) {
+    setupProductAutocomplete(e.target);
+    if (typeof e.target._openProductDropdown === 'function') {
+      e.target._openProductDropdown();
+    }
+  }
+});
+
+document.addEventListener('click', (e) => {
+  const toggle = e.target && e.target.closest ? e.target.closest('.btn-product-dropdown-toggle') : null;
+  if (toggle) {
+    const wrap = toggle.closest('.product-autocomplete-wrapper');
+    if (wrap) {
+      const input = wrap.querySelector('.input-produto');
+      if (input) {
+        setupProductAutocomplete(input);
+      }
+    }
+  }
+});
 
 /**
  * REGISTRO DE VENDAS - MOBILE APP
@@ -2785,22 +2826,24 @@ function findProductMatch(produtoStr) {
 
   const list = (appState && Array.isArray(appState.products) && appState.products.length > 0) ? appState.products : INITIAL_PRODUCTS;
 
-  // Correspondência EXATA por Display ("SKU - Nome"), Nome exato ou SKU exato
+  // Correspondência EXATA por Nome Limpo (após o hífen), Nome original, Display ou SKU
   let matched = list.find(p => {
+    const cleanName = getCleanProductName(p).toLowerCase();
     const pName = (p.name || '').trim().toLowerCase();
     const pSku = (p.sku || '').trim().toLowerCase();
     const displayVal = pSku ? `${pSku} - ${pName}` : pName;
-    return val === displayVal || val === pName || (pSku && val === pSku);
+    return val === cleanName || val === pName || val === displayVal || (pSku && val === pSku);
   });
   if (matched) return matched;
 
   // Correspondência exata sem acentos/pontuação
   const valNorm = normalizeText(val);
   matched = list.find(p => {
+    const cleanNorm = normalizeText(getCleanProductName(p));
     const pNameNorm = normalizeText(p.name);
     const pSkuNorm = normalizeText(p.sku);
     const displayNorm = pSkuNorm ? `${pSkuNorm} - ${pNameNorm}` : pNameNorm;
-    return valNorm === displayNorm || valNorm === pNameNorm || (pSkuNorm && valNorm === pSkuNorm);
+    return valNorm === cleanNorm || valNorm === pNameNorm || valNorm === displayNorm || (pSkuNorm && valNorm === pSkuNorm);
   });
 
   return matched || null;
@@ -3166,7 +3209,10 @@ function clearSalesForm() {
     // clear the first one
     const firstProd = container.querySelector('.input-produto');
     const firstPreco = container.querySelector('.input-preco');
-    if (firstProd) firstProd.value = '';
+    if (firstProd) {
+      firstProd.value = '';
+      setupProductAutocomplete(firstProd);
+    }
     if (firstPreco) firstPreco.value = '';
     if (window.updateProductRowButtons) window.updateProductRowButtons();
   }
@@ -4390,7 +4436,7 @@ window.openGarantiaFromSaleId = function(saleId) {
 function renderProductsDatalist() {
   DOM.produtosDatalist.innerHTML = appState.products
     .map(p => {
-      const displayVal = p.sku ? `${p.sku} - ${p.name}` : p.name;
+      const displayVal = getCleanProductName(p);
       return `<option value="${escapeHtml(displayVal)}">`;
     })
     .join('');
@@ -5019,6 +5065,8 @@ function showSalesForm() {
   DOM.subnavListBtn.classList.remove('active');
   DOM.salesFormSection.style.display = 'block';
   DOM.salesHistorySection.style.display = 'none';
+  const firstInput = document.getElementById('inputProduto_0');
+  if (firstInput) setupProductAutocomplete(firstInput);
   SoundEffects.playPop();
 }
 
@@ -5112,6 +5160,7 @@ function setupEventListeners() {
   if (firstProdInput) {
     firstProdInput.addEventListener('input', onProductInputChange);
     firstProdInput.addEventListener('change', onProductInputChange);
+    setupProductAutocomplete(firstProdInput);
   }
   
   const firstPrecoInput = document.getElementById('inputPreco_0');
