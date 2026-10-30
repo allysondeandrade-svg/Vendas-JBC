@@ -127,16 +127,26 @@ function setupProductAutocomplete(inputEl) {
     const entryEl = wrapper.closest('.product-entry');
     if (entryEl) entryEl.classList.add('has-open-dropdown');
 
-    // Rolagem inteligente para manter o campo e a lista visíveis acima do teclado virtual
-    if (typeof inputEl.scrollIntoView === 'function') {
-      setTimeout(() => {
+    // Posicionamento inteligente no celular:
+    // Garante que o elemento imediatamente acima (Unidade Guarulhos/Itaquera ou Preço anterior)
+    // continue visível no topo, com a lista completa aberta e espaço para o teclado
+    function adjustFieldScroll() {
+      try {
+        const prodRow = inputEl.closest('.form-row');
+        // Se houver linha anterior (ex: Unidade ou Preço do item anterior), rola para ela
+        const prevEl = (prodRow && prodRow.previousElementSibling) ? prodRow.previousElementSibling : null;
+        const targetToScroll = prevEl || prodRow || inputEl;
+        
+        targetToScroll.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (err) {
         try {
-          inputEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } catch (err) {
-          inputEl.scrollIntoView(true);
-        }
-      }, 100);
+          inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (e) {}
+      }
     }
+
+    setTimeout(adjustFieldScroll, 120);
+    setTimeout(adjustFieldScroll, 320);
 
     dropdown.querySelectorAll('.sheets-dropdown-item').forEach(itemEl => {
       let touchStartTime = 0;
