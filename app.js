@@ -19,45 +19,57 @@ function setupProductAutocomplete(inputEl) {
   let dropdown = wrapper.querySelector('.product-suggestions-dropdown');
   if (!dropdown) {
     dropdown = document.createElement('ul');
-    dropdown.className = 'product-suggestions-dropdown';
+    dropdown.className = 'product-suggestions-dropdown sheets-dropdown';
     dropdown.style.display = 'none';
     wrapper.appendChild(dropdown);
+  } else {
+    dropdown.classList.add('sheets-dropdown');
   }
 
+  const toggleBtn = wrapper.querySelector('.btn-product-dropdown-toggle');
   let isInteractingWithDropdown = false;
 
   dropdown.addEventListener('pointerdown', () => { isInteractingWithDropdown = true; });
   dropdown.addEventListener('touchstart', () => { isInteractingWithDropdown = true; });
   dropdown.addEventListener('mousedown', () => { isInteractingWithDropdown = true; });
 
+  function highlightMatch(text, query) {
+    if (!query) return escapeHtml(text);
+    const qNorm = normalizeText(query);
+    const tNorm = normalizeText(text);
+    const idx = tNorm.indexOf(qNorm);
+    if (idx === -1) return escapeHtml(text);
+    
+    // Divide mantendo os caracteres originais
+    const before = escapeHtml(text.substring(0, idx));
+    const match = escapeHtml(text.substring(idx, idx + query.length));
+    const after = escapeHtml(text.substring(idx + query.length));
+    return before + '<strong>' + match + '</strong>' + after;
+  }
+
   function renderDropdown(items, query) {
     if (!items || items.length === 0) {
       if (query && query.length >= 1) {
-        dropdown.innerHTML = '<li class="product-suggestions-empty">Nenhum produto encontrado com "' + escapeHtml(query) + '"</li>';
+        dropdown.innerHTML = '<li class="sheets-item-empty">Nenhum produto correspondente</li>';
         dropdown.style.display = 'block';
-    wrapper.classList.add('is-open');
-    const entryEl = wrapper.closest('.product-entry');
-    if (entryEl) entryEl.classList.add('has-open-dropdown');
+        wrapper.classList.add('is-open');
+        const entryEl = wrapper.closest('.product-entry');
+        if (entryEl) entryEl.classList.add('has-open-dropdown');
       } else {
         dropdown.style.display = 'none';
+        wrapper.classList.remove('is-open');
+        const entryEl = wrapper.closest('.product-entry');
+        if (entryEl) entryEl.classList.remove('has-open-dropdown');
       }
       return;
     }
 
     dropdown.innerHTML = items.map((p, idx) => {
       const displayVal = p.sku ? (p.sku + ' - ' + p.name) : p.name;
-      const skuTag = p.sku ? ('<span class="item-sku">' + escapeHtml(p.sku) + '</span>') : '';
-      const precoNum = String(p.price || '0').replace('R$ ', '');
-      const stock = (p.stock !== undefined && p.stock !== null && String(p.stock).trim() !== '') ? p.stock : (p.estoque !== undefined ? p.estoque : '');
-      const stockTag = stock !== '' ? ('<span class="item-stock">Estoque: ' + escapeHtml(String(stock)) + '</span>') : '';
+      const highlightedName = highlightMatch(displayVal, query);
 
-      return '<li class="product-suggestion-item" data-index="' + idx + '" data-val="' + escapeHtml(displayVal) + '">' +
-        '<div class="item-title">' + escapeHtml(displayVal) + '</div>' +
-        '<div class="item-details">' +
-          '<span class="item-price">R$ ' + escapeHtml(precoNum) + '</span>' +
-          skuTag +
-          stockTag +
-        '</div>' +
+      return '<li class="sheets-dropdown-item" data-index="' + idx + '" data-val="' + escapeHtml(displayVal) + '">' +
+        '<span class="sheets-item-text">' + highlightedName + '</span>' +
       '</li>';
     }).join('');
 
@@ -66,7 +78,7 @@ function setupProductAutocomplete(inputEl) {
     const entryEl = wrapper.closest('.product-entry');
     if (entryEl) entryEl.classList.add('has-open-dropdown');
 
-    dropdown.querySelectorAll('.product-suggestion-item').forEach(itemEl => {
+    dropdown.querySelectorAll('.sheets-dropdown-item').forEach(itemEl => {
       function onPick(e) {
         if (e) {
           e.preventDefault();
@@ -94,13 +106,18 @@ function setupProductAutocomplete(inputEl) {
     if (window.SoundEffects && SoundEffects.playPop) SoundEffects.playPop();
   }
 
-  function filterAndShow() {
+  function filterAndShow(showAllIfEmpty = false) {
     const rawVal = inputEl.value || '';
     const query = normalizeText(rawVal);
     const list = (appState && Array.isArray(appState.products) && appState.products.length > 0) ? appState.products : INITIAL_PRODUCTS;
 
     if (!query) {
-      renderDropdown(list.slice(0, 15), '');
+      if (showAllIfEmpty) {
+        // Exibe todos os produtos da planilha
+        renderDropdown(list, '');
+      } else {
+        renderDropdown(list, '');
+      }
       return;
     }
 
@@ -111,12 +128,34 @@ function setupProductAutocomplete(inputEl) {
       return nameNorm.includes(query) || skuNorm.includes(query) || catNorm.includes(query);
     });
 
-    renderDropdown(matches.slice(0, 30), rawVal.trim());
+    renderDropdown(matches, rawVal.trim());
   }
 
-  ['input', 'keyup', 'focus', 'click'].forEach(evtName => {
-    inputEl.addEventListener(evtName, filterAndShow);
+  ['input', 'keyup'].forEach(evtName => {
+    inputEl.addEventListener(evtName, () => filterAndShow(false));
   });
+
+  ['focus', 'click'].forEach(evtName => {
+    inputEl.addEventListener(evtName, () => filterAndShow(true));
+  });
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      isInteractingWithDropdown = true;
+      if (dropdown.style.display === 'block') {
+        dropdown.style.display = 'none';
+        wrapper.classList.remove('is-open');
+        const entryEl = wrapper.closest('.product-entry');
+        if (entryEl) entryEl.classList.remove('has-open-dropdown');
+      } else {
+        inputEl.focus();
+        filterAndShow(true);
+      }
+      setTimeout(() => { isInteractingWithDropdown = false; }, 300);
+    });
+  }
 
   inputEl.addEventListener('blur', () => {
     setTimeout(() => {
@@ -2917,6 +2956,11 @@ window.addEmptyProductRow = function() {
       <div class="input-wrapper" style="display: flex; gap: 8px; align-items: center;">
         <div class="product-autocomplete-wrapper">
           <input type="text" id="inputProduto_${index}" name="produto" class="form-input input-produto" placeholder="Ex: Fritadeira, Fogão..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" required>
+          <button type="button" class="btn-product-dropdown-toggle" tabindex="-1" title="Abrir lista de produtos">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
           <ul class="product-suggestions-dropdown" style="display: none;"></ul>
         </div>
         <button type="button" class="btn-remove-product" onclick="window.removeProductRow(this)" title="Remover este produto">
