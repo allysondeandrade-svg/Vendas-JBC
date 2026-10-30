@@ -28,10 +28,50 @@ function setupProductAutocomplete(inputEl) {
 
   const toggleBtn = wrapper.querySelector('.btn-product-dropdown-toggle');
   let isInteractingWithDropdown = false;
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
 
-  dropdown.addEventListener('pointerdown', () => { isInteractingWithDropdown = true; });
-  dropdown.addEventListener('touchstart', () => { isInteractingWithDropdown = true; });
-  dropdown.addEventListener('mousedown', () => { isInteractingWithDropdown = true; });
+  // Touch & Pointer gesture detection for native swipe scrolling on mobile
+  dropdown.addEventListener('touchstart', (e) => {
+    isInteractingWithDropdown = true;
+    isDragging = false;
+    if (e.touches && e.touches.length > 0) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  dropdown.addEventListener('touchmove', (e) => {
+    if (e.touches && e.touches.length > 0) {
+      const diffX = Math.abs(e.touches[0].clientX - startX);
+      const diffY = Math.abs(e.touches[0].clientY - startY);
+      if (diffY > 8 || diffX > 8) {
+        isDragging = true;
+      }
+    }
+  }, { passive: true });
+
+  dropdown.addEventListener('touchend', () => {
+    setTimeout(() => { isDragging = false; }, 80);
+  }, { passive: true });
+
+  dropdown.addEventListener('pointerdown', (e) => {
+    isInteractingWithDropdown = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    isDragging = false;
+  });
+
+  dropdown.addEventListener('pointermove', (e) => {
+    if (Math.abs(e.clientX - startX) > 8 || Math.abs(e.clientY - startY) > 8) {
+      isDragging = true;
+    }
+  });
+
+  dropdown.addEventListener('pointerup', () => {
+    setTimeout(() => { isDragging = false; }, 80);
+  });
 
   function highlightMatch(text, query) {
     if (!query) return escapeHtml(text);
@@ -40,7 +80,6 @@ function setupProductAutocomplete(inputEl) {
     const idx = tNorm.indexOf(qNorm);
     if (idx === -1) return escapeHtml(text);
     
-    // Divide mantendo os caracteres originais
     const before = escapeHtml(text.substring(0, idx));
     const match = escapeHtml(text.substring(idx, idx + query.length));
     const after = escapeHtml(text.substring(idx + query.length));
@@ -79,17 +118,39 @@ function setupProductAutocomplete(inputEl) {
     if (entryEl) entryEl.classList.add('has-open-dropdown');
 
     dropdown.querySelectorAll('.sheets-dropdown-item').forEach(itemEl => {
-      function onPick(e) {
-        if (e) {
+      let touchStartTime = 0;
+      let itemStartX = 0;
+      let itemStartY = 0;
+
+      itemEl.addEventListener('touchstart', (e) => {
+        touchStartTime = Date.now();
+        if (e.touches && e.touches[0]) {
+          itemStartX = e.touches[0].clientX;
+          itemStartY = e.touches[0].clientY;
+        }
+      }, { passive: true });
+
+      itemEl.addEventListener('touchend', (e) => {
+        const timeDiff = Date.now() - touchStartTime;
+        let dist = 0;
+        if (e.changedTouches && e.changedTouches[0]) {
+          const dx = e.changedTouches[0].clientX - itemStartX;
+          const dy = e.changedTouches[0].clientY - itemStartY;
+          dist = Math.sqrt(dx * dx + dy * dy);
+        }
+        // Se foi um toque rápido sem arrastar (menos de 300ms e movimento menor que 10px), é uma seleção!
+        if (!isDragging && dist < 12 && timeDiff < 450) {
           e.preventDefault();
           e.stopPropagation();
+          selectItem(itemEl);
         }
-        selectItem(itemEl);
-      }
-      itemEl.addEventListener('pointerdown', onPick);
-      itemEl.addEventListener('touchstart', onPick);
-      itemEl.addEventListener('mousedown', onPick);
-      itemEl.addEventListener('click', onPick);
+      });
+
+      itemEl.addEventListener('click', (e) => {
+        if (!isDragging) {
+          selectItem(itemEl);
+        }
+      });
     });
   }
 
@@ -101,6 +162,7 @@ function setupProductAutocomplete(inputEl) {
     const entryEl = wrapper.closest('.product-entry');
     if (entryEl) entryEl.classList.remove('has-open-dropdown');
     isInteractingWithDropdown = false;
+    isDragging = false;
     
     onProductInputChange({ target: inputEl });
     if (window.SoundEffects && SoundEffects.playPop) SoundEffects.playPop();
@@ -112,12 +174,7 @@ function setupProductAutocomplete(inputEl) {
     const list = (appState && Array.isArray(appState.products) && appState.products.length > 0) ? appState.products : INITIAL_PRODUCTS;
 
     if (!query) {
-      if (showAllIfEmpty) {
-        // Exibe todos os produtos da planilha
-        renderDropdown(list, '');
-      } else {
-        renderDropdown(list, '');
-      }
+      renderDropdown(list, '');
       return;
     }
 
@@ -131,18 +188,19 @@ function setupProductAutocomplete(inputEl) {
     renderDropdown(matches, rawVal.trim());
   }
 
-  ['input', 'keyup'].forEach(evtName => {
-    inputEl.addEventListener(evtName, () => filterAndShow(false));
-  });
+  // Eventos de digitação e foco
+  inputEl.addEventListener('input', () => filterAndShow(false));
+  inputEl.addEventListener('keyup', () => filterAndShow(false));
+  inputEl.addEventListener('focus', () => filterAndShow(true));
+  inputEl.addEventListener('click', () => filterAndShow(true));
 
-  ['focus', 'click'].forEach(evtName => {
-    inputEl.addEventListener(evtName, () => filterAndShow(true));
-  });
-
+  // Clique na setinha de validação
   if (toggleBtn) {
-    toggleBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    function onToggle(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       isInteractingWithDropdown = true;
       if (dropdown.style.display === 'block') {
         dropdown.style.display = 'none';
@@ -154,7 +212,10 @@ function setupProductAutocomplete(inputEl) {
         filterAndShow(true);
       }
       setTimeout(() => { isInteractingWithDropdown = false; }, 300);
-    });
+    }
+
+    toggleBtn.addEventListener('click', onToggle);
+    toggleBtn.addEventListener('touchstart', onToggle, { passive: false });
   }
 
   inputEl.addEventListener('blur', () => {

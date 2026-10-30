@@ -3964,20 +3964,27 @@ html, body {
   left: 0 !important;
   right: 0 !important;
   width: 100% !important;
-  max-height: 260px !important;
-  overflow-y: scroll !important;
+  max-height: 270px !important;
+  overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
-  overscroll-behavior: contain !important;
+  overscroll-behavior-y: contain !important;
   touch-action: pan-y !important;
   background-color: #ffffff !important;
-  border: 1px solid #cbd5e1 !important;
-  border-top: none !important;
-  border-radius: 0 0 8px 8px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18) !important;
+  border: 1.5px solid #10b981 !important;
+  border-top: 1px solid #cbd5e1 !important;
+  border-radius: 0 0 10px 10px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28) !important;
   z-index: 9999999 !important;
   padding: 0 !important;
   margin: 0 !important;
   list-style: none !important;
+}
+
+.sheets-dropdown-item {
+  touch-action: pan-y !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  cursor: pointer !important;
 }
 
 /* Scrollbar visível e elegante igual ao exemplo */
