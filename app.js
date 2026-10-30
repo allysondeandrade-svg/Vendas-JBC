@@ -127,6 +127,17 @@ function setupProductAutocomplete(inputEl) {
     const entryEl = wrapper.closest('.product-entry');
     if (entryEl) entryEl.classList.add('has-open-dropdown');
 
+    // Rolagem inteligente para manter o campo e a lista visíveis acima do teclado virtual
+    if (typeof inputEl.scrollIntoView === 'function') {
+      setTimeout(() => {
+        try {
+          inputEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (err) {
+          inputEl.scrollIntoView(true);
+        }
+      }, 100);
+    }
+
     dropdown.querySelectorAll('.sheets-dropdown-item').forEach(itemEl => {
       let touchStartTime = 0;
       let itemStartX = 0;
