@@ -127,45 +127,23 @@ function setupProductAutocomplete(inputEl) {
     const entryEl = wrapper.closest('.product-entry');
     if (entryEl) entryEl.classList.add('has-open-dropdown');
 
-    // Posicionamento exato no celular:
-    // Mantém o bloco anterior (Unidade Guarulhos/Itaquera ou Preço do produto anterior) visível no topo,
-    // deixando o campo do produto e toda a lista abertos com folga acima do teclado
+    // Posicionamento ideal no topo da tela:
+    // Rola o campo do Produto para ficar bem no topo da tela (com margem de 10px),
+    // garantindo que 100% da lista de produtos desça com folga total acima do teclado virtual.
     function adjustFieldScroll() {
       try {
-        const currentEntry = inputEl.closest('.product-entry');
-        let targetPrevEl = null;
-
-        if (currentEntry) {
-          const prevEntry = currentEntry.previousElementSibling;
-          if (prevEntry && prevEntry.classList && prevEntry.classList.contains('product-entry')) {
-            // Se for o 2º, 3º, etc. produto: pega a linha de Preço do produto imediatamente anterior
-            targetPrevEl = prevEntry.querySelector('.input-preco') || prevEntry;
-          } else {
-            // Se for o 1º produto: pega o bloco de Unidade (Guarulhos / Itaquera)
-            targetPrevEl = document.getElementById('row-filial');
-          }
-        }
-
-        if (targetPrevEl) {
-          const rect = targetPrevEl.getBoundingClientRect();
-          const targetY = window.pageYOffset + rect.top - 12; // 12px de margem suave no topo
-          window.scrollTo({
-            top: Math.max(0, targetY),
-            behavior: 'smooth'
-          });
-        } else {
-          const rect = inputEl.getBoundingClientRect();
-          const targetY = window.pageYOffset + rect.top - 80;
-          window.scrollTo({
-            top: Math.max(0, targetY),
-            behavior: 'smooth'
-          });
-        }
-      } catch (err) {}
+        const prodRow = inputEl.closest('.form-row') || inputEl;
+        prodRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (err) {
+        try {
+          inputEl.scrollIntoView(true);
+        } catch (e) {}
+      }
     }
 
-    setTimeout(adjustFieldScroll, 100);
-    setTimeout(adjustFieldScroll, 300);
+    setTimeout(adjustFieldScroll, 60);
+    setTimeout(adjustFieldScroll, 220);
+    setTimeout(adjustFieldScroll, 420);
 
     dropdown.querySelectorAll('.sheets-dropdown-item').forEach(itemEl => {
       let touchStartTime = 0;
