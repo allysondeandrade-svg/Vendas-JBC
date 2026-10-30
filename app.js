@@ -24,6 +24,12 @@ function setupProductAutocomplete(inputEl) {
     wrapper.appendChild(dropdown);
   }
 
+  let isInteractingWithDropdown = false;
+
+  dropdown.addEventListener('pointerdown', () => { isInteractingWithDropdown = true; });
+  dropdown.addEventListener('touchstart', () => { isInteractingWithDropdown = true; });
+  dropdown.addEventListener('mousedown', () => { isInteractingWithDropdown = true; });
+
   function renderDropdown(items, query) {
     if (!items || items.length === 0) {
       if (query && query.length >= 1) {
@@ -40,7 +46,7 @@ function setupProductAutocomplete(inputEl) {
       const skuTag = p.sku ? ('<span class="item-sku">' + escapeHtml(p.sku) + '</span>') : '';
       const precoNum = String(p.price || '0').replace('R$ ', '');
       const stock = (p.stock !== undefined && p.stock !== null && String(p.stock).trim() !== '') ? p.stock : (p.estoque !== undefined ? p.estoque : '');
-      const stockTag = stock !== '' ? ('<span class="item-stock">Unid: ' + escapeHtml(String(stock)) + '</span>') : '';
+      const stockTag = stock !== '' ? ('<span class="item-stock">Estoque: ' + escapeHtml(String(stock)) + '</span>') : '';
 
       return '<li class="product-suggestion-item" data-index="' + idx + '" data-val="' + escapeHtml(displayVal) + '">' +
         '<div class="item-title">' + escapeHtml(displayVal) + '</div>' +
@@ -62,8 +68,9 @@ function setupProductAutocomplete(inputEl) {
         }
         selectItem(itemEl);
       }
-      itemEl.addEventListener('mousedown', onPick);
       itemEl.addEventListener('pointerdown', onPick);
+      itemEl.addEventListener('touchstart', onPick);
+      itemEl.addEventListener('mousedown', onPick);
       itemEl.addEventListener('click', onPick);
     });
   }
@@ -72,6 +79,7 @@ function setupProductAutocomplete(inputEl) {
     const val = itemEl.getAttribute('data-val');
     inputEl.value = val;
     dropdown.style.display = 'none';
+    isInteractingWithDropdown = false;
     
     onProductInputChange({ target: inputEl });
     if (window.SoundEffects && SoundEffects.playPop) SoundEffects.playPop();
@@ -83,7 +91,7 @@ function setupProductAutocomplete(inputEl) {
     const list = (appState && Array.isArray(appState.products) && appState.products.length > 0) ? appState.products : INITIAL_PRODUCTS;
 
     if (!query) {
-      renderDropdown(list.slice(0, 10), '');
+      renderDropdown(list.slice(0, 15), '');
       return;
     }
 
@@ -94,7 +102,7 @@ function setupProductAutocomplete(inputEl) {
       return nameNorm.includes(query) || skuNorm.includes(query) || catNorm.includes(query);
     });
 
-    renderDropdown(matches.slice(0, 20), rawVal.trim());
+    renderDropdown(matches.slice(0, 30), rawVal.trim());
   }
 
   ['input', 'keyup', 'focus', 'click'].forEach(evtName => {
@@ -103,8 +111,11 @@ function setupProductAutocomplete(inputEl) {
 
   inputEl.addEventListener('blur', () => {
     setTimeout(() => {
-      dropdown.style.display = 'none';
-    }, 280);
+      if (!isInteractingWithDropdown) {
+        dropdown.style.display = 'none';
+      }
+      isInteractingWithDropdown = false;
+    }, 350);
   });
 }
 
@@ -2660,8 +2671,10 @@ function findProductMatch(produtoStr) {
   const val = String(produtoStr).trim().toLowerCase();
   if (!val) return null;
 
-  // 1. Exact match by name, SKU or formatted display "SKU - Name"
-  let matched = appState.products.find(p => {
+  const list = (appState && Array.isArray(appState.products) && appState.products.length > 0) ? appState.products : INITIAL_PRODUCTS;
+
+  // Correspondência EXATA por Display ("SKU - Nome"), Nome exato ou SKU exato
+  let matched = list.find(p => {
     const pName = (p.name || '').trim().toLowerCase();
     const pSku = (p.sku || '').trim().toLowerCase();
     const displayVal = pSku ? `${pSku} - ${pName}` : pName;
@@ -2669,11 +2682,13 @@ function findProductMatch(produtoStr) {
   });
   if (matched) return matched;
 
-  // 2. Starts with / includes match
-  matched = appState.products.find(p => {
-    const pName = (p.name || '').trim().toLowerCase();
-    const pSku = (p.sku || '').trim().toLowerCase();
-    return (pName && (val.includes(pName) || pName.includes(val))) || (pSku && (val.startsWith(pSku) || val.includes(pSku)));
+  // Correspondência exata sem acentos/pontuação
+  const valNorm = normalizeText(val);
+  matched = list.find(p => {
+    const pNameNorm = normalizeText(p.name);
+    const pSkuNorm = normalizeText(p.sku);
+    const displayNorm = pSkuNorm ? `${pSkuNorm} - ${pNameNorm}` : pNameNorm;
+    return valNorm === displayNorm || valNorm === pNameNorm || (pSkuNorm && valNorm === pSkuNorm);
   });
 
   return matched || null;
@@ -2888,7 +2903,10 @@ window.addEmptyProductRow = function() {
         Produto<span class="required-star">*</span>
       </label>
       <div class="input-wrapper" style="display: flex; gap: 8px; align-items: center;">
-        <input type="text" id="inputProduto_${index}" name="produto" class="form-input input-produto" placeholder="Ex: Fone Bluetooth" list="produtosDatalist">
+        <div class="product-autocomplete-wrapper">
+          <input type="text" id="inputProduto_${index}" name="produto" class="form-input input-produto" placeholder="Ex: Fritadeira, Fogão..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" required>
+          <ul class="product-suggestions-dropdown" style="display: none;"></ul>
+        </div>
         <button type="button" class="btn-remove-product" onclick="window.removeProductRow(this)" title="Remover este produto">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
