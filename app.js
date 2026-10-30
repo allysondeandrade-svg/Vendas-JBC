@@ -1,6 +1,6 @@
 
 // ============================================================================
-// CUSTOM AUTOCOMPLETE ENGINE PARA PRODUTOS (PESQUISA EM TEMPO REAL)
+// CUSTOM AUTOCOMPLETE ENGINE PARA PRODUTOS (MOBILE & DESKTOP)
 // ============================================================================
 function normalizeText(str) {
   if (!str) return '';
@@ -24,31 +24,9 @@ function setupProductAutocomplete(inputEl) {
     wrapper.appendChild(dropdown);
   }
 
-  function highlightMatch(text, query) {
-    if (!query) return escapeHtml(text);
-    const escapedQuery = query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\function setupProductAutocomplete(inputEl) {
-  if (!inputEl) return;
-  const wrapper = inputEl.closest('.product-autocomplete-wrapper');
-  if (!wrapper) return;
-  
-  let dropdown = wrapper.querySelector('.product-suggestions-dropdown');
-  if (!dropdown) {
-    dropdown = document.createElement('ul');
-    dropdown.className = 'product-suggestions-dropdown';
-    dropdown.style.display = 'none';
-    wrapper.appendChild(dropdown);
-  }
-
-  function highlightMatch(text, query) {
-    if (!query) return escapeHtml(text);
-    const escapedQuery = query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    const regex = new RegExp(`(${escapedQuery})`, 'gi');
-    return escapeHtml(text).replace(regex, '<mark>$1</mark>');
-  }
-
   function renderDropdown(items, query) {
     if (!items || items.length === 0) {
-      if (query.length >= 1) {
+      if (query && query.length >= 1) {
         dropdown.innerHTML = '<li class="product-suggestions-empty">Nenhum produto encontrado com "' + escapeHtml(query) + '"</li>';
         dropdown.style.display = 'block';
       } else {
@@ -58,128 +36,24 @@ function setupProductAutocomplete(inputEl) {
     }
 
     dropdown.innerHTML = items.map((p, idx) => {
-      const displayVal = p.sku ? `${p.sku} - ${p.name}` : p.name;
-      const skuTag = p.sku ? `<span class="item-sku">${escapeHtml(p.sku)}</span>` : '';
+      const displayVal = p.sku ? (p.sku + ' - ' + p.name) : p.name;
+      const skuTag = p.sku ? ('<span class="item-sku">' + escapeHtml(p.sku) + '</span>') : '';
       const precoNum = String(p.price || '0').replace('R$ ', '');
       const stock = (p.stock !== undefined && p.stock !== null && String(p.stock).trim() !== '') ? p.stock : (p.estoque !== undefined ? p.estoque : '');
-      const stockTag = stock !== '' ? `<span class="item-stock">Estoque: ${escapeHtml(String(stock))} unid</span>` : '';
+      const stockTag = stock !== '' ? ('<span class="item-stock">Unid: ' + escapeHtml(String(stock)) + '</span>') : '';
 
-      return `
-        <li class="product-suggestion-item" data-index="${idx}" data-val="${escapeHtml(displayVal)}" data-price="${escapeHtml(String(p.price))}">
-          <div class="item-title">${highlightMatch(displayVal, query)}</div>
-          <div class="item-details">
-            <span class="item-price">R$ ${escapeHtml(precoNum)}</span>
-            ${skuTag}
-            ${stockTag}
-          </div>
-        </li>
-      `;
+      return '<li class="product-suggestion-item" data-index="' + idx + '" data-val="' + escapeHtml(displayVal) + '">' +
+        '<div class="item-title">' + escapeHtml(displayVal) + '</div>' +
+        '<div class="item-details">' +
+          '<span class="item-price">R$ ' + escapeHtml(precoNum) + '</span>' +
+          skuTag +
+          stockTag +
+        '</div>' +
+      '</li>';
     }).join('');
 
     dropdown.style.display = 'block';
 
-    // Click events nos itens
-    dropdown.querySelectorAll('.product-suggestion-item').forEach(itemEl => {
-      itemEl.addEventListener('mousedown', (e) => {
-        e.preventDefault(); // Impede o blur prematuro
-        selectItem(itemEl);
-      });
-      itemEl.addEventListener('touchstart', (e) => {
-        // Suporte perfeito a toque em smartphone
-        e.stopPropagation();
-      }, { passive: true });
-      itemEl.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        selectItem(itemEl);
-      });
-    });
-  }
-
-  function selectItem(itemEl) {
-    const val = itemEl.getAttribute('data-val');
-    inputEl.value = val;
-    dropdown.style.display = 'none';
-    
-    // Atualiza preço e recálculos
-    onProductInputChange({ target: inputEl });
-    SoundEffects.playPop();
-  }
-
-  function filterAndShow() {
-    const query = inputEl.value.trim().toLowerCase();
-    if (!query) {
-      // Se estiver vazio, mostra os primeiros 10 produtos recentes
-      renderDropdown(appState.products.slice(0, 8), '');
-      return;
-    }
-
-    const matches = appState.products.filter(p => {
-      const name = (p.name || '').toLowerCase();
-      const sku = (p.sku || '').toLowerCase();
-      const cat = (p.category || '').toLowerCase();
-      return name.includes(query) || sku.includes(query) || cat.includes(query);
-    });
-
-    renderDropdown(matches.slice(0, 15), query);
-  }
-
-  inputEl.addEventListener('input', () => {
-    filterAndShow();
-  });
-
-  inputEl.addEventListener('focus', () => {
-    filterAndShow();
-  });
-
-  inputEl.addEventListener('blur', () => {
-    // Pequeno delay para permitir o clique/touch
-    setTimeout(() => {
-      dropdown.style.display = 'none';
-    }, 250);
-  });
-}
-
-function initAllProductAutocompletes() {
-  document.querySelectorAll('.input-produto').forEach(input => {
-    setupProductAutocomplete(input);
-  }');
-    const regex = new RegExp(`(${escapedQuery})`, 'gi');
-    return escapeHtml(text).replace(regex, '<mark>$1</mark>');
-  }
-
-  function renderDropdown(items, query) {
-    if (!items || items.length === 0) {
-      if (query && query.length >= 1) {
-        dropdown.innerHTML = '<li class="product-suggestions-empty">Nenhum produto com "' + escapeHtml(query) + '"</li>';
-        dropdown.style.display = 'block';
-      } else {
-        dropdown.style.display = 'none';
-      }
-      return;
-    }
-
-    dropdown.innerHTML = items.map((p, idx) => {
-      const displayVal = p.sku ? `${p.sku} - ${p.name}` : p.name;
-      const skuTag = p.sku ? `<span class="item-sku">${escapeHtml(p.sku)}</span>` : '';
-      const precoNum = String(p.price || '0').replace('R$ ', '');
-      const stock = (p.stock !== undefined && p.stock !== null && String(p.stock).trim() !== '') ? p.stock : (p.estoque !== undefined ? p.estoque : '');
-      const stockTag = stock !== '' ? `<span class="item-stock">Unid: ${escapeHtml(String(stock))}</span>` : '';
-
-      return `
-        <li class="product-suggestion-item" data-index="${idx}" data-val="${escapeHtml(displayVal)}" data-price="${escapeHtml(String(p.price))}">
-          <div class="item-title">${highlightMatch(displayVal, query)}</div>
-          <div class="item-details">
-            <span class="item-price">R$ ${escapeHtml(precoNum)}</span>
-            ${skuTag}
-            ${stockTag}
-          </div>
-        </li>
-      `;
-    }).join('');
-
-    dropdown.style.display = 'block';
-
-    // Touch & Click events com prevenção de blur
     dropdown.querySelectorAll('.product-suggestion-item').forEach(itemEl => {
       function onPick(e) {
         if (e) {
@@ -199,7 +73,6 @@ function initAllProductAutocompletes() {
     inputEl.value = val;
     dropdown.style.display = 'none';
     
-    // Atualiza preço e recálculos imediatamente
     onProductInputChange({ target: inputEl });
     if (window.SoundEffects && SoundEffects.playPop) SoundEffects.playPop();
   }
@@ -207,16 +80,14 @@ function initAllProductAutocompletes() {
   function filterAndShow() {
     const rawVal = inputEl.value || '';
     const query = normalizeText(rawVal);
-    
-    // Obter lista atualizada de produtos
-    const productList = (appState && Array.isArray(appState.products)) ? appState.products : [];
+    const list = (appState && Array.isArray(appState.products) && appState.products.length > 0) ? appState.products : INITIAL_PRODUCTS;
 
     if (!query) {
-      renderDropdown(productList.slice(0, 10), '');
+      renderDropdown(list.slice(0, 10), '');
       return;
     }
 
-    const matches = productList.filter(p => {
+    const matches = list.filter(p => {
       const nameNorm = normalizeText(p.name);
       const skuNorm = normalizeText(p.sku);
       const catNorm = normalizeText(p.category);
@@ -226,13 +97,11 @@ function initAllProductAutocompletes() {
     renderDropdown(matches.slice(0, 20), rawVal.trim());
   }
 
-  // Múltiplos listeners para teclado virtual de celular
   ['input', 'keyup', 'focus', 'click'].forEach(evtName => {
     inputEl.addEventListener(evtName, filterAndShow);
   });
 
   inputEl.addEventListener('blur', () => {
-    // Timeout para permitir que o clique/toque no item registre antes de esconder
     setTimeout(() => {
       dropdown.style.display = 'none';
     }, 280);
@@ -243,7 +112,6 @@ function initAllProductAutocompletes() {
   document.querySelectorAll('.input-produto').forEach(input => {
     setupProductAutocomplete(input);
   });
-});
 }
 
 /**
@@ -300,11 +168,870 @@ const INITIAL_SELLERS = [
 ];
 
 const INITIAL_PRODUCTS = [
-  { id: 'p1', name: 'Smartphone Galaxy A15 128GB', price: '899,00', cost: '650,00', basePrice: '750,00', category: 'Smartphones' },
-  { id: 'p2', name: 'Fone Bluetooth Pro Cancelamento', price: '149,90', cost: '55,00', basePrice: '100,00', category: 'Acessórios' },
-  { id: 'p3', name: 'Smartwatch Ultra 49mm Esportivo', price: '219,00', cost: '100,00', basePrice: '160,00', category: 'Wearables' },
-  { id: 'p4', name: 'Cabo USB-C Turbo Blindado 2m', price: '39,90', cost: '12,00', basePrice: '25,00', category: 'Cabos' },
-  { id: 'p5', name: 'Mochila Executiva Impermeável', price: '189,00', cost: '85,00', basePrice: '130,00', category: 'Bolsas' }
+  {
+    "sku": "prod-1793049105214",
+    "name": "Marmiteiro 50 Marmitas",
+    "price": "1500",
+    "cost": "1100",
+    "basePrice": "1450",
+    "category": "Geral",
+    "id": "prod-1793049105214"
+  },
+  {
+    "sku": "Mesa de Inox",
+    "name": "Mesa de Inox",
+    "price": "250",
+    "cost": "81",
+    "basePrice": "220",
+    "category": "Geral",
+    "id": "prod-1791469819673"
+  },
+  {
+    "sku": "FT RED 5L",
+    "name": "Fritadeira Redonda 5L",
+    "price": "150",
+    "cost": "85",
+    "basePrice": "130",
+    "category": "Geral",
+    "id": "p-1"
+  },
+  {
+    "sku": "FT RED 5L Cabo",
+    "name": "Fritadeira Redonda 5L com Cabo",
+    "price": "160",
+    "cost": "95",
+    "basePrice": "140",
+    "category": "Geral",
+    "id": "p-2"
+  },
+  {
+    "sku": "FT RED 6L Inox",
+    "name": "Fritadeira Redonda 6L Inox",
+    "price": "200",
+    "cost": "120",
+    "basePrice": "180",
+    "category": "Geral",
+    "id": "p-3"
+  },
+  {
+    "sku": "FT RED 7L",
+    "name": "Fritadeira Redonda 7L",
+    "price": "220",
+    "cost": "155",
+    "basePrice": "200",
+    "category": "Geral",
+    "id": "p-4"
+  },
+  {
+    "sku": "FT RED 7L Cabo",
+    "name": "Fritadeira Redonda 7L com Cabo",
+    "price": "230",
+    "cost": "165",
+    "basePrice": "210",
+    "category": "Geral",
+    "id": "p-5"
+  },
+  {
+    "sku": "FT 1 CUBA 5L",
+    "name": "Fritadeira 1 Cuba 5 L Quadrada",
+    "price": "220",
+    "cost": "150",
+    "basePrice": "200",
+    "category": "Geral",
+    "id": "p-6"
+  },
+  {
+    "sku": "FT 1 CUBA 5L Cabo",
+    "name": "Fritadeira 1 Cuba 5 L Quadrada com Cabo",
+    "price": "230",
+    "cost": "160",
+    "basePrice": "210",
+    "category": "Geral",
+    "id": "p-7"
+  },
+  {
+    "sku": "FT 1 CUBA 5L Tampa",
+    "name": "Fritadeira 1 Cuba 5 L Quadrada com Tampa",
+    "price": "260",
+    "cost": "170",
+    "basePrice": "235",
+    "category": "Geral",
+    "id": "p-8"
+  },
+  {
+    "sku": "FT 1 CUBA 5L Cabo Tampa",
+    "name": "Fritadeira 1 Cuba 5 L Quadrada com Cabo e Tampa",
+    "price": "270",
+    "cost": "180",
+    "basePrice": "245",
+    "category": "Geral",
+    "id": "p-9"
+  },
+  {
+    "sku": "FT 1 CUBA 7L",
+    "name": "Fritadeira 1 Cuba 7 L Quadrada",
+    "price": "250",
+    "cost": "170",
+    "basePrice": "230",
+    "category": "Geral",
+    "id": "p-10"
+  },
+  {
+    "sku": "FT 1 CUBA 7L Cabo",
+    "name": "Fritadeira 1 Cuba 7 L Quadrada com Cabo",
+    "price": "260",
+    "cost": "180",
+    "basePrice": "240",
+    "category": "Geral",
+    "id": "p-11"
+  },
+  {
+    "sku": "FT 1 CUBA 7L Tampa",
+    "name": "Fritadeira 1 Cuba 7 L Quadrada com Tampa",
+    "price": "290",
+    "cost": "190",
+    "basePrice": "265",
+    "category": "Geral",
+    "id": "p-12"
+  },
+  {
+    "sku": "FT 1 CUBA 7L Cabo Tampa",
+    "name": "Fritadeira 1 Cuba 7 L Quadrada com Cabo e Tampa",
+    "price": "300",
+    "cost": "200",
+    "basePrice": "275",
+    "category": "Geral",
+    "id": "p-13"
+  },
+  {
+    "sku": "FT 2 CUBAS 10L",
+    "name": "Fritadeira 2 Cubas 10 L Quadrada",
+    "price": "400",
+    "cost": "310",
+    "basePrice": "380",
+    "category": "Geral",
+    "id": "p-14"
+  },
+  {
+    "sku": "FT 2 CUBAS 10L Cabo",
+    "name": "Fritadeira 2 Cubas 10 L Quadrada com Cabo",
+    "price": "420",
+    "cost": "330",
+    "basePrice": "400",
+    "category": "Geral",
+    "id": "p-15"
+  },
+  {
+    "sku": "FT 2 CUBAS 10L Tampa",
+    "name": "Fritadeira 2 Cubas 10 L Quadrada com Tampa",
+    "price": "480",
+    "cost": "350",
+    "basePrice": "450",
+    "category": "Geral",
+    "id": "p-16"
+  },
+  {
+    "sku": "FT 2 CUBAS 10L Cabo Tampa",
+    "name": "Fritadeira 2 Cubas 10 L Quadrada com Cabo e Tampa",
+    "price": "500",
+    "cost": "380",
+    "basePrice": "470",
+    "category": "Geral",
+    "id": "p-17"
+  },
+  {
+    "sku": "FT 2 CUBAS 14L",
+    "name": "Fritadeira 2 Cubas 14 L Quadrada",
+    "price": "450",
+    "cost": "335",
+    "basePrice": "420",
+    "category": "Geral",
+    "id": "p-18"
+  },
+  {
+    "sku": "FT 2 CUBAS 14L Cabo",
+    "name": "Fritadeira 2 Cubas 14 L Quadrada com Cabo",
+    "price": "470",
+    "cost": "355",
+    "basePrice": "440",
+    "category": "Geral",
+    "id": "p-19"
+  },
+  {
+    "sku": "FT 2 CUBAS 14L Tampa",
+    "name": "Fritadeira 2 Cubas 14 L Quadrada com Tampa",
+    "price": "530",
+    "cost": "375",
+    "basePrice": "490",
+    "category": "Geral",
+    "id": "p-20"
+  },
+  {
+    "sku": "FT 2 CUBAS 14L Cabo Tampa",
+    "name": "Fritadeira 2 Cubas 14 L Quadrada com Cabo e Tampa",
+    "price": "550",
+    "cost": "395",
+    "basePrice": "510",
+    "category": "Geral",
+    "id": "p-21"
+  },
+  {
+    "sku": "FG 2 JR RISK",
+    "name": "Fogão 2 Bocas Junior Risk",
+    "price": "280",
+    "cost": "200",
+    "basePrice": "260",
+    "category": "Geral",
+    "id": "p-22"
+  },
+  {
+    "sku": "FG 2 JR ROA",
+    "name": "Fogão 2 Bocas Junior Roa",
+    "price": "280",
+    "cost": "220",
+    "basePrice": "260",
+    "category": "Geral",
+    "id": "p-23"
+  },
+  {
+    "sku": "FG 2 Baby",
+    "name": "Fogão 2 Bocas Baby",
+    "price": "250",
+    "cost": "157",
+    "basePrice": "220",
+    "category": "Geral",
+    "id": "p-24"
+  },
+  {
+    "sku": "FG 2 Baby c/ Chapa",
+    "name": "Fogão 2 Bocas Baby com Chapa",
+    "price": "350",
+    "cost": "190",
+    "basePrice": "320",
+    "category": "Geral",
+    "id": "p-25"
+  },
+  {
+    "sku": "FG 2 SEN RISK",
+    "name": "Fogão 2 Bocas Senior Risk",
+    "price": "350",
+    "cost": "220",
+    "basePrice": "320",
+    "category": "Geral",
+    "id": "p-26"
+  },
+  {
+    "sku": "FG 2 SEN ROA",
+    "name": "Fogão 2 Bocas Senior Roa",
+    "price": "350",
+    "cost": "280",
+    "basePrice": "320",
+    "category": "Geral",
+    "id": "p-27"
+  },
+  {
+    "sku": "FG 2 SEN SUZAN",
+    "name": "Fogão 2 Bocas Senior Suzan",
+    "price": "320",
+    "cost": "200",
+    "basePrice": "300",
+    "category": "Geral",
+    "id": "p-28"
+  },
+  {
+    "sku": "FG 3 RISK",
+    "name": "Fogão 3 Bocas Risk",
+    "price": "470",
+    "cost": "310",
+    "basePrice": "440",
+    "category": "Geral",
+    "id": "p-29"
+  },
+  {
+    "sku": "FG 3 ROA",
+    "name": "Fogão 3 Bocas Roa",
+    "price": "470",
+    "cost": "330",
+    "basePrice": "440",
+    "category": "Geral",
+    "id": "p-30"
+  },
+  {
+    "sku": "FG 3 SUZAN",
+    "name": "Fogão 3 Bocas Suzan",
+    "price": "450",
+    "cost": "260",
+    "basePrice": "420",
+    "category": "Geral",
+    "id": "p-31"
+  },
+  {
+    "sku": "FG 4 RISK",
+    "name": "Fogão 4 Bocas Risk",
+    "price": "580",
+    "cost": "415",
+    "basePrice": "550",
+    "category": "Geral",
+    "id": "p-32"
+  },
+  {
+    "sku": "FG 4 ROA",
+    "name": "Fogão 4 Bocas Roa",
+    "price": "580",
+    "cost": "415",
+    "basePrice": "550",
+    "category": "Geral",
+    "id": "p-33"
+  },
+  {
+    "sku": "FG 4 SUZAN",
+    "name": "Fogão 4 Bocas Suzan",
+    "price": "550",
+    "cost": "310",
+    "basePrice": "520",
+    "category": "Geral",
+    "id": "p-34"
+  },
+  {
+    "sku": "FG 4 c/ Forno",
+    "name": "Fogão 4 Bocas com Forno",
+    "price": "1250",
+    "cost": "920",
+    "basePrice": "1170",
+    "category": "Geral",
+    "id": "p-35"
+  },
+  {
+    "sku": "FG 6 RISK",
+    "name": "Fogão 6 Bocas Risk",
+    "price": "700",
+    "cost": "515",
+    "basePrice": "670",
+    "category": "Geral",
+    "id": "p-36"
+  },
+  {
+    "sku": "FG 6 ROA",
+    "name": "Fogão 6 Bocas Roa",
+    "price": "700",
+    "cost": "550",
+    "basePrice": "670",
+    "category": "Geral",
+    "id": "p-37"
+  },
+  {
+    "sku": "FG 6 c/ Forno",
+    "name": "Fogão 6 Bocas com Forno",
+    "price": "1350",
+    "cost": "1020",
+    "basePrice": "1270",
+    "category": "Geral",
+    "id": "p-38"
+  },
+  {
+    "sku": "CH 30X40 Prensa",
+    "name": "Chapa 30X40 Prensa",
+    "price": "300",
+    "cost": "215",
+    "basePrice": "280",
+    "category": "Geral",
+    "id": "p-39"
+  },
+  {
+    "sku": "CH 30X40 Prensa",
+    "name": "Chapa 30X40 Prensa",
+    "price": "350",
+    "cost": "250",
+    "basePrice": "320",
+    "category": "Geral",
+    "id": "p-40"
+  },
+  {
+    "sku": "CH 30X60 Prensa",
+    "name": "Chapa 30X60 Prensa",
+    "price": "400",
+    "cost": "305",
+    "basePrice": "370",
+    "category": "Geral",
+    "id": "p-41"
+  },
+  {
+    "sku": "CH 40X60",
+    "name": "Chapa 40X60",
+    "price": "450",
+    "cost": "345",
+    "basePrice": "430",
+    "category": "Geral",
+    "id": "p-42"
+  },
+  {
+    "sku": "CH 40X80",
+    "name": "Chapa 40X80",
+    "price": "600",
+    "cost": "475",
+    "basePrice": "570",
+    "category": "Geral",
+    "id": "p-43"
+  },
+  {
+    "sku": "ET 2 Band",
+    "name": "Estufa 2 Band",
+    "price": "250",
+    "cost": "175",
+    "basePrice": "230",
+    "category": "Geral",
+    "id": "p-44"
+  },
+  {
+    "sku": "ET 3 Mini",
+    "name": "Estufa 3 Mini",
+    "price": "280",
+    "cost": "190",
+    "basePrice": "260",
+    "category": "Geral",
+    "id": "p-45"
+  },
+  {
+    "sku": "ET 2 Gelo X",
+    "name": "Estufa 2 Gelo X",
+    "price": "300",
+    "cost": "185",
+    "basePrice": "270",
+    "category": "Geral",
+    "id": "p-46"
+  },
+  {
+    "sku": "ET 3 Band",
+    "name": "Estufa 3 Band",
+    "price": "300",
+    "cost": "205",
+    "basePrice": "280",
+    "category": "Geral",
+    "id": "p-47"
+  },
+  {
+    "sku": "ET 4 Mini",
+    "name": "Estufa 4 Mini",
+    "price": "320",
+    "cost": "225",
+    "basePrice": "300",
+    "category": "Geral",
+    "id": "p-48"
+  },
+  {
+    "sku": "ET 3 Gelo X",
+    "name": "Estufa 3 Gelo X",
+    "price": "350",
+    "cost": "216",
+    "basePrice": "320",
+    "category": "Geral",
+    "id": "p-49"
+  },
+  {
+    "sku": "ET 4 Linha",
+    "name": "Estufa 4 Linha",
+    "price": "0",
+    "cost": "",
+    "basePrice": "0",
+    "category": "Geral",
+    "id": "p-50"
+  },
+  {
+    "sku": "ET 4 Dupla",
+    "name": "Estufa 4 Dupla",
+    "price": "350",
+    "cost": "265",
+    "basePrice": "330",
+    "category": "Geral",
+    "id": "p-51"
+  },
+  {
+    "sku": "ET 4 Dupla Term",
+    "name": "Estufa 4 Dupla Term",
+    "price": "0",
+    "cost": "",
+    "basePrice": "0",
+    "category": "Geral",
+    "id": "p-52"
+  },
+  {
+    "sku": "ET 6 Mini",
+    "name": "Estufa 6 Mini",
+    "price": "400",
+    "cost": "285",
+    "basePrice": "370",
+    "category": "Geral",
+    "id": "p-53"
+  },
+  {
+    "sku": "ET 6 Dupla",
+    "name": "Estufa 6 Dupla",
+    "price": "450",
+    "cost": "310",
+    "basePrice": "420",
+    "category": "Geral",
+    "id": "p-54"
+  },
+  {
+    "sku": "ET 6 Dupla Term",
+    "name": "Estufa 6 Dupla Term",
+    "price": "0",
+    "cost": "",
+    "basePrice": "0",
+    "category": "Geral",
+    "id": "p-55"
+  },
+  {
+    "sku": "ET 8 Dupla",
+    "name": "Estufa 8 Dupla",
+    "price": "550",
+    "cost": "400",
+    "basePrice": "530",
+    "category": "Geral",
+    "id": "p-56"
+  },
+  {
+    "sku": "Caça 26",
+    "name": "Caçarola 26",
+    "price": "70",
+    "cost": "37",
+    "basePrice": "65",
+    "category": "Geral",
+    "id": "p-57"
+  },
+  {
+    "sku": "Caça 34",
+    "name": "Caçarola 34",
+    "price": "100",
+    "cost": "56",
+    "basePrice": "95",
+    "category": "Geral",
+    "id": "p-58"
+  },
+  {
+    "sku": "Cald 26",
+    "name": "Caldeirão 26",
+    "price": "80",
+    "cost": "41",
+    "basePrice": "75",
+    "category": "Geral",
+    "id": "p-59"
+  },
+  {
+    "sku": "Cald 34",
+    "name": "Caldeirão 34",
+    "price": "120",
+    "cost": "73",
+    "basePrice": "115",
+    "category": "Geral",
+    "id": "p-60"
+  },
+  {
+    "sku": "Jogo Ind",
+    "name": "Jogo Industrial",
+    "price": "320",
+    "cost": "207",
+    "basePrice": "300",
+    "category": "Geral",
+    "id": "p-61"
+  },
+  {
+    "sku": "Jogo + Con",
+    "name": "Jogo + Con",
+    "price": "345",
+    "cost": "220",
+    "basePrice": "320",
+    "category": "Geral",
+    "id": "p-62"
+  },
+  {
+    "sku": "Jogo + Con + Esp",
+    "name": "Jogo + Con + Esp",
+    "price": "370",
+    "cost": "233",
+    "basePrice": "340",
+    "category": "Geral",
+    "id": "p-63"
+  },
+  {
+    "sku": "Pres 10L Craq",
+    "name": "Panela de Pressão 10L Craqueada",
+    "price": "150",
+    "cost": "96",
+    "basePrice": "140",
+    "category": "Geral",
+    "id": "p-64"
+  },
+  {
+    "sku": "Pres 10L Pol",
+    "name": "Panela de Pressão 10L Polida",
+    "price": "150",
+    "cost": "91",
+    "basePrice": "140",
+    "category": "Geral",
+    "id": "p-65"
+  },
+  {
+    "sku": "Jogo 5 Peças",
+    "name": "Jogo 5 Peças",
+    "price": "150",
+    "cost": "92",
+    "basePrice": "140",
+    "category": "Geral",
+    "id": "p-66"
+  },
+  {
+    "sku": "Concha",
+    "name": "Concha",
+    "price": "25",
+    "cost": "13",
+    "basePrice": "20",
+    "category": "Geral",
+    "id": "p-67"
+  },
+  {
+    "sku": "Espum",
+    "name": "Espumadeira",
+    "price": "25",
+    "cost": "13",
+    "basePrice": "20",
+    "category": "Geral",
+    "id": "p-68"
+  },
+  {
+    "sku": "Forno Inox 54L",
+    "name": "Forno Inox 54L",
+    "price": "600",
+    "cost": "430",
+    "basePrice": "550",
+    "category": "Geral",
+    "id": "p-69"
+  },
+  {
+    "sku": "Forno Inox 85L",
+    "name": "Forno Inox 85L",
+    "price": "700",
+    "cost": "515",
+    "basePrice": "650",
+    "category": "Geral",
+    "id": "p-70"
+  },
+  {
+    "sku": "Grade p/ Forno",
+    "name": "Grade p/ Forno",
+    "price": "50",
+    "cost": "20",
+    "basePrice": "40",
+    "category": "Geral",
+    "id": "p-71"
+  },
+  {
+    "sku": "CAR c/ GAV",
+    "name": "Carrinho c/ Gaveta",
+    "price": "400",
+    "cost": "295",
+    "basePrice": "380",
+    "category": "Geral",
+    "id": "p-72"
+  },
+  {
+    "sku": "CAR s/ GAV",
+    "name": "Carrinho s/ Gaveta",
+    "price": "320",
+    "cost": "230",
+    "basePrice": "300",
+    "category": "Geral",
+    "id": "p-73"
+  },
+  {
+    "sku": "Ester 2 Bules",
+    "name": "Esterilizador 2 Bules",
+    "price": "350",
+    "cost": "275",
+    "basePrice": "330",
+    "category": "Geral",
+    "id": "p-74"
+  },
+  {
+    "sku": "Ester 3 Bules",
+    "name": "Esterilizador 3 Bules",
+    "price": "420",
+    "cost": "330",
+    "basePrice": "400",
+    "category": "Geral",
+    "id": "p-75"
+  },
+  {
+    "sku": "Marmiteiro 12 M",
+    "name": "Marmiteiro 12 Marmitas",
+    "price": "470",
+    "cost": "410",
+    "basePrice": "450",
+    "category": "Geral",
+    "id": "p-76"
+  },
+  {
+    "sku": "Gav 5 Inox",
+    "name": "Gaveteiro 5 Inox",
+    "price": "1200",
+    "cost": "921",
+    "basePrice": "1150",
+    "category": "Geral",
+    "id": "p-77"
+  },
+  {
+    "sku": "Gav 6 Inox",
+    "name": "Gaveteiro 6 Inox",
+    "price": "1300",
+    "cost": "1060",
+    "basePrice": "1250",
+    "category": "Geral",
+    "id": "p-78"
+  },
+  {
+    "sku": "Tampa c/ Corte",
+    "name": "Tampa c/ Corte",
+    "price": "50",
+    "cost": "20",
+    "basePrice": "40",
+    "category": "Geral",
+    "id": "p-79"
+  },
+  {
+    "sku": "Tampa c/ Dobra",
+    "name": "Tampa c/ Dobra",
+    "price": "50",
+    "cost": "22",
+    "basePrice": "40",
+    "category": "Geral",
+    "id": "p-80"
+  },
+  {
+    "sku": "EC P",
+    "name": "Escorredor P",
+    "price": "80",
+    "cost": "50",
+    "basePrice": "70",
+    "category": "Geral",
+    "id": "p-81"
+  },
+  {
+    "sku": "EC G",
+    "name": "Escorredor G",
+    "price": "100",
+    "cost": "56",
+    "basePrice": "90",
+    "category": "Geral",
+    "id": "p-82"
+  },
+  {
+    "sku": "Mang e Reg",
+    "name": "Mang e Reg",
+    "price": "20",
+    "cost": "Mon Aug 10 2026 00:00:00 GMT-0300 (Horário Padrão de Brasília)",
+    "basePrice": "15",
+    "category": "Geral",
+    "id": "p-83"
+  },
+  {
+    "sku": "Reg",
+    "name": "Registro Alta Pressão",
+    "price": "15",
+    "cost": "5",
+    "basePrice": "10",
+    "category": "Geral",
+    "id": "p-84"
+  },
+  {
+    "sku": "Reg Duplo",
+    "name": "Registro Duplo Alta Pressão",
+    "price": "15",
+    "cost": "15",
+    "basePrice": "20",
+    "category": "Geral",
+    "id": "p-85"
+  },
+  {
+    "sku": "Queim",
+    "name": "Queimador 5 Caulis Ajustável",
+    "price": "50",
+    "cost": "Thu Apr 23 2026 00:00:00 GMT-0300 (Horário Padrão de Brasília)",
+    "basePrice": "40",
+    "category": "Geral",
+    "id": "p-86"
+  },
+  {
+    "sku": "1 Caulim",
+    "name": "1 Caulim",
+    "price": "2",
+    "cost": "0.58",
+    "basePrice": "0.75",
+    "category": "Geral",
+    "id": "p-87"
+  },
+  {
+    "sku": "10 Caulins",
+    "name": "10 Caulins",
+    "price": "15",
+    "cost": "Wed Aug 05 2026 00:00:00 GMT-0300 (Horário Padrão de Brasília)",
+    "basePrice": "15",
+    "category": "Geral",
+    "id": "p-88"
+  },
+  {
+    "sku": "Band P",
+    "name": "Bandeja P",
+    "price": "30",
+    "cost": "15",
+    "basePrice": "30",
+    "category": "Geral",
+    "id": "p-89"
+  },
+  {
+    "sku": "Band M",
+    "name": "Bandeja M",
+    "price": "0",
+    "cost": "16.75",
+    "basePrice": "0",
+    "category": "Geral",
+    "id": "p-90"
+  },
+  {
+    "sku": "Band G",
+    "name": "Bandeja G",
+    "price": "0",
+    "cost": "20",
+    "basePrice": "0",
+    "category": "Geral",
+    "id": "p-91"
+  },
+  {
+    "sku": "Cesto",
+    "name": "Cesto",
+    "price": "0",
+    "cost": "19",
+    "basePrice": "0",
+    "category": "Geral",
+    "id": "p-92"
+  },
+  {
+    "sku": "Cabo",
+    "name": "Cabo",
+    "price": "0",
+    "cost": "10",
+    "basePrice": "0",
+    "category": "Geral",
+    "id": "p-93"
+  },
+  {
+    "sku": "Pasta de Brilho",
+    "name": "Pasta de Brilho",
+    "price": "0",
+    "cost": "3",
+    "basePrice": "0",
+    "category": "Geral",
+    "id": "p-94"
+  }
 ];
 
 // Realistic initial sales attributing across sellers and recent dates
@@ -318,100 +1045,916 @@ function formatCustomDate(ts) {
 
 const INITIAL_SALES = [
   {
-    id: 'sale-1',
-    vendedor: 'Junior',
-    produto: 'Smartphone Galaxy A15 128GB',
-    preco: '899,00',
-    cliente: 'Marcos Vinícius',
-    contato: '(11) 99123-4567',
-    endereco: 'Rua Augusta, 500 - SP',
-    frete: 'Grátis',
-    pagamento: 'Pix',
-    observacao: 'Entrega imediata',
-    comissao: '149,00',
-    lucro: '100,00',
-    timestamp: nowMs - 1000 * 60 * 30, // 30 min ago (Hoje)
-    dateString: formatCustomDate(nowMs - 1000 * 60 * 30)
+    "id": "sale-1791296293699-1",
+    "dateString": "Tue Oct 06 2026 11:18:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 3 RISK - Fogão 3 Bocas Risk",
+    "preco": "420",
+    "cliente": "Alenxadre",
+    "contato": "11975972012",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Item 1/2 - Nenhuma",
+    "comissao": "-20",
+    "lucro": "130",
+    "timestamp": 1791296280000
   },
   {
-    id: 'sale-2',
-    vendedor: 'Alexandre',
-    produto: 'Smartwatch Ultra 49mm Esportivo',
-    preco: '219,00',
-    cliente: 'Juliana Costa',
-    contato: '(11) 98234-5678',
-    endereco: 'Av. Paulista, 1000',
-    frete: '15,00',
-    pagamento: 'Cartão de Crédito',
-    observacao: 'Cor: Laranja',
-    comissao: '59,00',
-    lucro: '60,00',
-    timestamp: nowMs - 1000 * 60 * 180, // 3h ago (Hoje)
-    dateString: formatCustomDate(nowMs - 1000 * 60 * 180)
+    "id": "sale-1791296293699-2",
+    "dateString": "Tue Oct 06 2026 11:18:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FT 2 CUBAS 10L - Fritadeira 2 Cubas 10 L Quadrada",
+    "preco": "359",
+    "cliente": "Alenxadre",
+    "contato": "11975972012",
+    "endereco": "Não informado",
+    "frete": "Incluso",
+    "pagamento": "Não informado",
+    "observacao": "Item 2/2 - Nenhuma",
+    "comissao": "-21",
+    "lucro": "70",
+    "timestamp": 1791296280000
   },
   {
-    id: 'sale-3',
-    vendedor: 'Jeremias',
-    produto: 'Fone Bluetooth Pro Cancelamento',
-    preco: '149,90',
-    cliente: 'Rodrigo Alves',
-    contato: '(21) 97345-6789',
-    endereco: 'Copacabana - RJ',
-    frete: '20,00',
-    pagamento: 'Pix',
-    observacao: 'Embalar para presente',
-    comissao: '49,90',
-    lucro: '45,00',
-    timestamp: nowMs - oneDayMs * 1, // Ontem
-    dateString: formatCustomDate(nowMs - oneDayMs * 1)
+    "id": "sale-1790698415554",
+    "dateString": "Tue Sep 29 2026 13:13:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "p25 - FG 2 Baby",
+    "preco": "250",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "30",
+    "lucro": "63",
+    "timestamp": 1790698380000
   },
   {
-    id: 'sale-4',
-    vendedor: 'Allyson',
-    produto: 'Mochila Executiva Impermeável',
-    preco: '189,00',
-    cliente: 'Camila Santos',
-    contato: '(31) 98456-7890',
-    endereco: 'Belo Horizonte - MG',
-    frete: 'Grátis',
-    pagamento: 'Boleto',
-    observacao: 'Preta',
-    comissao: '59,00',
-    lucro: '45,00',
-    timestamp: nowMs - oneDayMs * 3, // 3 dias atrás
-    dateString: formatCustomDate(nowMs - oneDayMs * 3)
+    "id": "sale-1790699753981",
+    "dateString": "Tue Sep 29 2026 13:35:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Allyson",
+    "produto": "p105 - Cesto",
+    "preco": "50",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "10",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "5",
+    "lucro": "26",
+    "timestamp": 1790699700000
   },
   {
-    id: 'sale-5',
-    vendedor: 'Johnathan',
-    produto: 'Cabo USB-C Turbo Blindado 2m',
-    preco: '39,90',
-    cliente: 'Felipe Duarte',
-    contato: '(41) 99567-8901',
-    endereco: 'Curitiba - PR',
-    frete: '10,00',
-    pagamento: 'Dinheiro',
-    observacao: 'Retirada na loja',
-    comissao: '14,90',
-    lucro: '13,00',
-    timestamp: nowMs - oneDayMs * 5, // 5 dias atrás
-    dateString: formatCustomDate(nowMs - oneDayMs * 5)
+    "id": "sale-1790778883075",
+    "dateString": "Wed Sep 30 2026 11:34:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "ET 6 Mini - Estufa 6 Mini",
+    "preco": "400",
+    "cliente": "vanderli",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "30",
+    "lucro": "370",
+    "timestamp": 1790778840000
   },
   {
-    id: 'sale-6',
-    vendedor: 'Junior',
-    produto: 'Fone Bluetooth Pro Cancelamento',
-    preco: '149,90',
-    cliente: 'Patricia Neves',
-    contato: '(11) 97678-9012',
-    endereco: 'Santana - SP',
-    frete: 'Grátis',
-    pagamento: 'Pix',
-    observacao: 'Branco',
-    comissao: '49,90',
-    lucro: '45,00',
-    timestamp: nowMs - oneDayMs * 12, // 12 dias atrás (Este mês)
-    dateString: formatCustomDate(nowMs - oneDayMs * 12)
+    "id": "sale-1790791477044",
+    "dateString": "Wed Sep 30 2026 15:04:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 3 RISK - Fogão 3 Bocas Risk",
+    "preco": "400",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "30",
+    "lucro": "370",
+    "timestamp": 1790791440000
+  },
+  {
+    "id": "sale-1790858809949",
+    "dateString": "Thu Oct 01 2026 09:46:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Allyson",
+    "produto": "ET 6 Dupla Term - Estufa 6 Dupla Term",
+    "preco": "450",
+    "cliente": "Wanessa",
+    "contato": "11950940625",
+    "endereco": "Rua Dona Antônia, 1073 - Vila das Palmeiras, Guarulhos - SP",
+    "frete": "40",
+    "pagamento": "Dinheiro",
+    "observacao": "Nenhuma",
+    "comissao": "0",
+    "lucro": "450",
+    "timestamp": 1790858760000
+  },
+  {
+    "id": "sale-1790868955568",
+    "dateString": "Thu Oct 01 2026 12:35:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 4 RISK - Fogão 4 Bocas Risk",
+    "preco": "550",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "0",
+    "lucro": "550",
+    "timestamp": 1790868900000
+  },
+  {
+    "id": "sale-1790951147723",
+    "dateString": "Fri Oct 02 2026 11:25:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 6 RISK - Fogão 6 Bocas Risk",
+    "preco": "650",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "0",
+    "lucro": "650",
+    "timestamp": 1790951100000
+  },
+  {
+    "id": "sale-1790968790395",
+    "dateString": "Fri Oct 02 2026 16:19:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "FG 2 JR ROA - Fogão 2 Bocas Junior Roa, FG 3 RISK - Fogão 3 Bocas Risk",
+    "preco": "709",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "0",
+    "lucro": "709",
+    "timestamp": 1790968740000
+  },
+  {
+    "id": "sale-1791037627037",
+    "dateString": "Sat Oct 03 2026 11:27:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Allyson",
+    "produto": "Queim - Queimador 5 Caulis Ajustável",
+    "preco": "50",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "0",
+    "lucro": "50",
+    "timestamp": 1791037620000
+  },
+  {
+    "id": "sale-1791038257981",
+    "dateString": "Sat Oct 03 2026 11:37:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 2 JR ROA - Fogão 2 Bocas Junior Roa, FG 4 RISK - Fogão 4 Bocas Risk",
+    "preco": "810",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "0",
+    "lucro": "810",
+    "timestamp": 1791038220000
+  },
+  {
+    "id": "sale-1791038297847",
+    "dateString": "Sat Oct 03 2026 11:38:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "CAR c/ GAV - Carrinho c/ Gaveta",
+    "preco": "350",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "0",
+    "lucro": "350",
+    "timestamp": 1791038280000
+  },
+  {
+    "id": "sale-1791052565454",
+    "dateString": "Sat Oct 03 2026 15:36:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 3 RISK - Fogão 3 Bocas Risk, panela de pressão",
+    "preco": "500",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "0",
+    "lucro": "500",
+    "timestamp": 1791052560000
+  },
+  {
+    "id": "sale-1791052632071",
+    "dateString": "Sat Oct 03 2026 15:37:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "ET 3 Mini - Estufa 3 Mini",
+    "preco": "260",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "0",
+    "lucro": "260",
+    "timestamp": 1791052620000
+  },
+  {
+    "id": "sale-1791238061262",
+    "dateString": "Mon Oct 05 2026 19:07:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "ET 6 Mini - Estufa 6 Mini, FT RED 7L - Fritadeira Redonda 7L",
+    "preco": "650",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "80",
+    "lucro": "130",
+    "timestamp": 1791238020000
+  },
+  {
+    "id": "sale-1791238127409",
+    "dateString": "Mon Oct 05 2026 19:08:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 3 RISK - Fogão 3 Bocas Risk, FG 2 JR RISK - Fogão 2 Bocas Junior Risk",
+    "preco": "620",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-80",
+    "lucro": "190",
+    "timestamp": 1791238080000
+  },
+  {
+    "id": "sale-1791294432523",
+    "dateString": "Tue Oct 06 2026 10:47:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Allyson",
+    "produto": "CAR c/ GAV - Carrinho c/ Gaveta",
+    "preco": "350",
+    "cliente": "Marco Mendes",
+    "contato": "11 99488-2422",
+    "endereco": "Rua Cipriano Barata, 1582 - Ipiranga, São Paulo - SP",
+    "frete": "90",
+    "pagamento": "Pix",
+    "observacao": "Nenhuma",
+    "comissao": "-30",
+    "lucro": "85",
+    "timestamp": 1791294420000
+  },
+  {
+    "id": "sale-1791313832680",
+    "dateString": "Tue Oct 06 2026 16:10:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "FG 6 RISK - Fogão 6 Bocas Risk",
+    "preco": "650",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-20",
+    "lucro": "155",
+    "timestamp": 1791313800000
+  },
+  {
+    "id": "sale-1791393793492",
+    "dateString": "Wed Oct 07 2026 14:23:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "ET 6 Mini - Estufa 6 Mini",
+    "preco": "370",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "0",
+    "lucro": "85",
+    "timestamp": 1791393780000
+  },
+  {
+    "id": "sale-1791469663415",
+    "dateString": "Thu Oct 08 2026 11:27:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "junior",
+    "produto": "carrinho",
+    "preco": "380",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "0",
+    "lucro": "85",
+    "timestamp": 1791469620000
+  },
+  {
+    "id": "sale-1791469769202",
+    "dateString": "Thu Oct 08 2026 11:29:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "ET 6 Mini - Estufa 6 Mini, FG 2 JR ROA - Fogão 2 Bocas Junior Roa",
+    "preco": "620",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-10",
+    "lucro": "125",
+    "timestamp": 1791469740000
+  },
+  {
+    "id": "sale-1791469920825",
+    "dateString": "Thu Oct 08 2026 11:32:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "mesa, gaveteiro 6",
+    "preco": "1420",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-50",
+    "lucro": "410",
+    "timestamp": 1791469920000
+  },
+  {
+    "id": "sale-1791469987646",
+    "dateString": "Thu Oct 08 2026 11:33:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 2 Baby c/ Chapa - Fogão 2 Bocas Baby com Chapa",
+    "preco": "250",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-70",
+    "lucro": "130",
+    "timestamp": 1791469980000
+  },
+  {
+    "id": "sale-1791487223744",
+    "dateString": "Thu Oct 08 2026 16:20:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "ET 3 Band - Estufa 3 Band, ET 4 Dupla - Estufa 4 Dupla",
+    "preco": "680",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "70",
+    "lucro": "140",
+    "timestamp": 1791487200000
+  },
+  {
+    "id": "sale-1791487885839",
+    "dateString": "Thu Oct 08 2026 16:31:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 4 c/ Forno - Fogão 4 Bocas com Forno",
+    "preco": "1170",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "0",
+    "lucro": "250",
+    "timestamp": 1791487860000
+  },
+  {
+    "id": "sale-1791496597571",
+    "dateString": "Thu Oct 08 2026 18:56:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Johnathan",
+    "produto": "FT 1 CUBA 7L - Fritadeira 1 Cuba 7 L Quadrada",
+    "preco": "250",
+    "cliente": "Pamela",
+    "contato": "11 965102173",
+    "endereco": "Avenida Doutor Guilherme de Abreu Sodré, N 1073- Vila Hortência, São Paulo - SP",
+    "frete": "42",
+    "pagamento": "Pix",
+    "observacao": "Nenhuma",
+    "comissao": "20",
+    "lucro": "60",
+    "timestamp": 1791496560000
+  },
+  {
+    "id": "sale-1791497133626",
+    "dateString": "Thu Oct 08 2026 19:05:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Johnathan",
+    "produto": "FT 1 CUBA 5L - Fritadeira 1 Cuba 5 L Quadrada",
+    "preco": "240",
+    "cliente": "jaqueline",
+    "contato": "11989535640",
+    "endereco": "Praça Marisa Marques, N82 - Vila Rosália, Guarulhos - SP",
+    "frete": "0.2",
+    "pagamento": "Pix",
+    "observacao": "Nenhuma",
+    "comissao": "40",
+    "lucro": "50",
+    "timestamp": 1791497100000
+  },
+  {
+    "id": "sale-1791566591378",
+    "dateString": "Fri Oct 09 2026 14:23:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 6 RISK - Fogão 6 Bocas Risk, panela de pressão",
+    "preco": "780",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-30",
+    "lucro": "199",
+    "timestamp": 1791566580000
+  },
+  {
+    "id": "sale-1791579822201",
+    "dateString": "Fri Oct 09 2026 18:03:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 3 RISK - Fogão 3 Bocas Risk",
+    "preco": "370",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-70",
+    "lucro": "130",
+    "timestamp": 1791579780000
+  },
+  {
+    "id": "sale-1791579829544",
+    "dateString": "Fri Oct 09 2026 18:03:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 3 RISK - Fogão 3 Bocas Risk",
+    "preco": "370",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-70",
+    "lucro": "130",
+    "timestamp": 1791579780000
+  },
+  {
+    "id": "sale-1791652833420",
+    "dateString": "Sat Oct 10 2026 14:20:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 2 JR ROA - Fogão 2 Bocas Junior Roa, ET 6 Mini - Estufa 6 Mini",
+    "preco": "620",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-10",
+    "lucro": "125",
+    "timestamp": 1791652800000
+  },
+  {
+    "id": "sale-1791662798072",
+    "dateString": "Sat Oct 10 2026 17:06:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "FT 1 CUBA 7L - Fritadeira 1 Cuba 7 L Quadrada",
+    "preco": "250",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "20",
+    "lucro": "60",
+    "timestamp": 1791662760000
+  },
+  {
+    "id": "sale-1791929474661",
+    "dateString": "Tue Oct 13 2026 19:11:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 6 RISK - Fogão 6 Bocas Risk, FG 4 RISK - Fogão 4 Bocas Risk",
+    "preco": "1190",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-30",
+    "lucro": "290",
+    "timestamp": 1791929460000
+  },
+  {
+    "id": "sale-1792002042951",
+    "dateString": "Wed Oct 14 2026 15:20:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "FT RED 7L - Fritadeira Redonda 7L",
+    "preco": "230",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "30",
+    "lucro": "45",
+    "timestamp": 1792002000000
+  },
+  {
+    "id": "sale-1792094418764",
+    "dateString": "Thu Oct 15 2026 17:00:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "Mesa de Inox - Mesa de Inox, Mesa de Inox - Mesa de Inox, FT 1 CUBA 5L - Fritadeira 1 Cuba 5 L Quadrada",
+    "preco": "629",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-11",
+    "lucro": "230",
+    "timestamp": 1792094400000
+  },
+  {
+    "id": "sale-1792094857132",
+    "dateString": "Thu Oct 15 2026 17:07:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "ET 3 Mini - Estufa 3 Mini, Ester 3 Bules - Esterilizador 3 Bules, FT 1 CUBA 7L - Fritadeira 1 Cuba 7 L Quadrada, EC P - Escorredor P, fogão",
+    "preco": "1269",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "49",
+    "lucro": "280",
+    "timestamp": 1792094820000
+  },
+  {
+    "id": "sale-1792108981594",
+    "dateString": "Thu Oct 15 2026 21:03:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Johnathan",
+    "produto": "FG 3 RISK - Fogão 3 Bocas Risk",
+    "preco": "499",
+    "cliente": "Reinaldo gangas",
+    "contato": "11 94206-1096",
+    "endereco": "Avenida Henrique Franco, 100 - Limoeiro, São Paulo - SP",
+    "frete": "40",
+    "pagamento": "Pix",
+    "observacao": "Nenhuma",
+    "comissao": "59",
+    "lucro": "130",
+    "timestamp": 1792108980000
+  },
+  {
+    "id": "sale-1792434012527",
+    "dateString": "Mon Oct 19 2026 15:20:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "FT 2 CUBAS 10L - Fritadeira 2 Cubas 10 L Quadrada, mesa, escorredor, tampa",
+    "preco": "860",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-45",
+    "lucro": "294",
+    "timestamp": 1792434000000
+  },
+  {
+    "id": "sale-1792513874165",
+    "dateString": "Tue Oct 20 2026 13:31:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "FG 3 RISK - Fogão 3 Bocas Risk, FG 4 RISK - Fogão 4 Bocas Risk",
+    "preco": "999",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "9",
+    "lucro": "265",
+    "timestamp": 1792513860000
+  },
+  {
+    "id": "sale-1792520822359",
+    "dateString": "Tue Oct 20 2026 15:27:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "FG 3 RISK - Fogão 3 Bocas Risk",
+    "preco": "449",
+    "cliente": "sociedade escola de samba  imperador do Ipiranga",
+    "contato": "#ERROR!",
+    "endereco": "Avenida Otto Baumgart 451 em Vila Guilherme",
+    "frete": "50",
+    "pagamento": "Não informado",
+    "observacao": "fábrica do samba 2 barracão  imperador do Ipiranga",
+    "comissao": "0",
+    "lucro": "139",
+    "timestamp": 1792520820000
+  },
+  {
+    "id": "sale-1792773205048",
+    "dateString": "Fri Oct 23 2026 13:33:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "Fogão 6 bocas com forno",
+    "preco": "1350",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "140",
+    "lucro": "190",
+    "timestamp": 1792773180000
+  },
+  {
+    "id": "sale-1792853299273",
+    "dateString": "Sat Oct 24 2026 11:48:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "jinior",
+    "produto": "fogão 4",
+    "preco": "500",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-50",
+    "lucro": "135",
+    "timestamp": 1792853280000
+  },
+  {
+    "id": "sale-1793040259864",
+    "dateString": "Mon Oct 26 2026 15:44:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "junior",
+    "produto": "fogão 3, fogão 3, fogão 4, fogão 4",
+    "preco": "1800",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-180",
+    "lucro": "530",
+    "timestamp": 1793040240000
+  },
+  {
+    "id": "sale-1793040470275",
+    "dateString": "Mon Oct 26 2026 15:47:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "fogão 3",
+    "preco": "400",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-40",
+    "lucro": "130",
+    "timestamp": 1793040420000
+  },
+  {
+    "id": "sale-1793049231570",
+    "dateString": "Mon Oct 26 2026 18:13:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Allyson",
+    "produto": "Marmiteiro",
+    "preco": "1500",
+    "cliente": "Anjun Express",
+    "contato": "#ERROR!",
+    "endereco": "Rua dos Tucanos, 630 - Sítio Guarehy, Carapicuíba - SP",
+    "frete": "Não informado",
+    "pagamento": "Pix",
+    "observacao": "Nenhuma",
+    "comissao": "50",
+    "lucro": "350",
+    "timestamp": 1793049180000
+  },
+  {
+    "id": "sale-1793139759860",
+    "dateString": "Tue Oct 27 2026 19:22:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Allyson",
+    "produto": "FG 4 Risk, Pres craq",
+    "preco": "720",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "30",
+    "lucro": "275",
+    "timestamp": 1793139720000
+  },
+  {
+    "id": "sale-1793190836836",
+    "dateString": "Wed Oct 28 2026 09:33:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "redonda, fogão 2 bocas, mesa",
+    "preco": "580",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-30",
+    "lucro": "244",
+    "timestamp": 1793190780000
+  },
+  {
+    "id": "sale-1793190886269",
+    "dateString": "Wed Oct 28 2026 09:34:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "carrinho",
+    "preco": "380",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "0",
+    "lucro": "85",
+    "timestamp": 1793190840000
+  },
+  {
+    "id": "sale-1793198016066",
+    "dateString": "Wed Oct 28 2026 11:33:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Jeremias",
+    "produto": "Fogão 6 Bocas Roa, Chapa 40x60",
+    "preco": "1150",
+    "cliente": "Gabriela Yuri da Cruz",
+    "contato": "11943517918",
+    "endereco": "Rua Orlando Tasca, 277 - Vila Falchi, Mauá - SP",
+    "frete": "120",
+    "pagamento": "Pix",
+    "observacao": "Comércio",
+    "comissao": "65",
+    "lucro": "1085",
+    "timestamp": 1793197980000
+  },
+  {
+    "id": "sale-1793218468598",
+    "dateString": "Wed Oct 28 2026 17:14:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Jeremias",
+    "produto": "Fogão 6 Bocas Risk, Chapa 40x60",
+    "preco": "1150",
+    "cliente": "Gabriela Yuri da Cruz",
+    "contato": "11943517918",
+    "endereco": "Rua Orlando Tasca, 277 - Vila Falchi, Mauá - SP",
+    "frete": "120",
+    "pagamento": "Pix",
+    "observacao": "Condomínio",
+    "comissao": "75",
+    "lucro": "1075",
+    "timestamp": 1793218440000
+  },
+  {
+    "id": "sale-1793309378113",
+    "dateString": "Thu Oct 29 2026 18:29:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Junior",
+    "produto": "estufa 6, redonda 7, escorredor, 2 Cubas 14",
+    "preco": "1218",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "158",
+    "lucro": "235",
+    "timestamp": 1793309340000
+  },
+  {
+    "id": "sale-1793309694878",
+    "dateString": "Thu Oct 29 2026 18:34:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "mesa, 4 bcs, fogão 2 Risk",
+    "preco": "1080",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "30",
+    "lucro": "969",
+    "timestamp": 1793309640000
+  },
+  {
+    "id": "sale-1793309742338",
+    "dateString": "Thu Oct 29 2026 18:35:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "mesa, 4 bcs, fogão 2 Risk",
+    "preco": "1080",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "30",
+    "lucro": "969",
+    "timestamp": 1793309700000
+  },
+  {
+    "id": "sale-1793309804195",
+    "dateString": "Thu Oct 29 2026 18:36:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "jogo de panelas, fogão 6",
+    "preco": "940",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-20",
+    "lucro": "445",
+    "timestamp": 1793309760000
+  },
+  {
+    "id": "sale-1793309852191",
+    "dateString": "Thu Oct 29 2026 18:37:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "jogo de panelas, fogão 6",
+    "preco": "940",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "-20",
+    "lucro": "445",
+    "timestamp": 1793309820000
+  },
+  {
+    "id": "sale-1793310560500",
+    "dateString": "Thu Oct 29 2026 18:49:00 GMT-0300 (Horário Padrão de Brasília)",
+    "vendedor": "Alexandre",
+    "produto": "fogão 4",
+    "preco": "550",
+    "cliente": "Não informado",
+    "contato": "Não informado",
+    "endereco": "Não informado",
+    "frete": "Não informado",
+    "pagamento": "Não informado",
+    "observacao": "Nenhuma",
+    "comissao": "0",
+    "lucro": "135",
+    "timestamp": 1793310540000
   }
 ];
 
@@ -1345,10 +2888,7 @@ window.addEmptyProductRow = function() {
         Produto<span class="required-star">*</span>
       </label>
       <div class="input-wrapper" style="display: flex; gap: 8px; align-items: center;">
-        <div class="product-autocomplete-wrapper">
-          <input type="text" id="inputProduto_${index}" name="produto" class="form-input input-produto" placeholder="Ex: Fritadeira, Fogão..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" required>
-          <ul class="product-suggestions-dropdown" style="display: none;"></ul>
-        </div>
+        <input type="text" id="inputProduto_${index}" name="produto" class="form-input input-produto" placeholder="Ex: Fone Bluetooth" list="produtosDatalist">
         <button type="button" class="btn-remove-product" onclick="window.removeProductRow(this)" title="Remover este produto">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -4059,7 +5599,7 @@ function escapeHtml(text) {
     .replace(/'/g, '&#039;');
 }
 
-// Close all product dropdowns on outside click
+// Fechar dropdowns de autocomplete ao clicar fora
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.product-autocomplete-wrapper')) {
     document.querySelectorAll('.product-suggestions-dropdown').forEach(d => d.style.display = 'none');
