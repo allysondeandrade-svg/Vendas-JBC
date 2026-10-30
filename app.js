@@ -3044,7 +3044,11 @@ window.updateProductRowButtons = function() {
   }
 };
 
-window.addEmptyProductRow = function() {
+window.addEmptyProductRow = function(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (window._isAddingProductRow) return;
+  window._isAddingProductRow = true;
+  setTimeout(() => { window._isAddingProductRow = false; }, 350);
   const container = document.getElementById('productsContainer');
   const index = container.children.length;
   
@@ -5153,7 +5157,7 @@ function setupEventListeners() {
   
   const btnAddProductRow = document.getElementById('btnAddProductRow');
   if (btnAddProductRow) {
-    btnAddProductRow.addEventListener('click', window.addEmptyProductRow);
+    btnAddProductRow.onclick = function(e) { window.addEmptyProductRow(e); };
   }
 
   const firstProdInput = document.getElementById('inputProduto_0');
