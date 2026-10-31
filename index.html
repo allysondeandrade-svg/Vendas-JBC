@@ -22,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css?v=1793326601773">
+  <link rel="stylesheet" href="styles.css?v=1793457900000">
   
   <!-- PDF Generation Libraries (jsPDF + html2canvas) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -154,7 +154,15 @@
                   Vendedor<span class="required-star">*</span>
                 </label>
                 <div class="input-wrapper">
-                  <input type="text" id="inputVendedor" name="vendedor" class="form-input" placeholder="Ex: Junior, Alexandre..." list="vendedoresDatalist" onfocus="this.dataset.oldValue=this.value; this.value=''" onblur="if(this.value==='') this.value=this.dataset.oldValue" required>
+                  <div class="seller-autocomplete-wrapper">
+                    <input type="text" id="inputVendedor" name="vendedor" class="form-input input-vendedor" placeholder="Ex: Junior, Alexandre..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" required>
+                    <button type="button" class="btn-seller-dropdown-toggle" tabindex="-1" title="Abrir lista de vendedores">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                    <ul class="seller-suggestions-dropdown" style="display: none;"></ul>
+                  </div>
                   <datalist id="vendedoresDatalist">
                     <!-- Populated dynamically with Junior, Alexandre, Jeremias, Allyson, Johnathan -->
                   </datalist>
@@ -1562,6 +1570,6 @@ function createJsonResponse(obj) {
   <div id="garantiaPdfOffscreen" style="position: absolute; left: -9999px; top: 0; width: 800px; background: #ffffff; padding: 32px; box-sizing: border-box; font-family: 'Inter', Arial, sans-serif; color: #111827;"></div>
 
   <!-- App JavaScript Logic (com cache-busting para atualizar no GitHub Pages) -->
-  <script src="app.js?v=1793327849342"></script>
+  <script src="app.js?v=1793457900000"></script>
 </body>
 </html>

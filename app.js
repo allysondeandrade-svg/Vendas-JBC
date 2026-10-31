@@ -273,6 +273,231 @@ function initAllProductAutocompletes() {
   });
 }
 
+// ============================================================================
+// CUSTOM AUTOCOMPLETE ENGINE PARA VENDEDORES (ESTILO GOOGLE SHEETS)
+// ============================================================================
+function setupSellerAutocomplete(inputEl) {
+  if (!inputEl) return;
+  const wrapper = inputEl.closest('.seller-autocomplete-wrapper');
+  if (!wrapper) return;
+  
+  let dropdown = wrapper.querySelector('.seller-suggestions-dropdown');
+  if (!dropdown) {
+    dropdown = document.createElement('ul');
+    dropdown.className = 'seller-suggestions-dropdown sheets-dropdown';
+    dropdown.style.display = 'none';
+    wrapper.appendChild(dropdown);
+  } else {
+    dropdown.classList.add('sheets-dropdown');
+  }
+
+  const toggleBtn = wrapper.querySelector('.btn-seller-dropdown-toggle');
+  let isInteractingWithDropdown = false;
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+
+  dropdown.addEventListener('touchstart', (e) => {
+    isInteractingWithDropdown = true;
+    isDragging = false;
+    if (e.touches && e.touches.length > 0) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  dropdown.addEventListener('touchmove', (e) => {
+    if (e.touches && e.touches.length > 0) {
+      const diffX = Math.abs(e.touches[0].clientX - startX);
+      const diffY = Math.abs(e.touches[0].clientY - startY);
+      if (diffY > 8 || diffX > 8) {
+        isDragging = true;
+      }
+    }
+  }, { passive: true });
+
+  dropdown.addEventListener('touchend', () => {
+    setTimeout(() => { isDragging = false; }, 80);
+  }, { passive: true });
+
+  dropdown.addEventListener('pointerdown', (e) => {
+    isInteractingWithDropdown = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    isDragging = false;
+  });
+
+  dropdown.addEventListener('pointermove', (e) => {
+    if (Math.abs(e.clientX - startX) > 8 || Math.abs(e.clientY - startY) > 8) {
+      isDragging = true;
+    }
+  });
+
+  dropdown.addEventListener('pointerup', () => {
+    setTimeout(() => { isDragging = false; }, 80);
+  });
+
+  function highlightMatch(text, query) {
+    if (!query) return escapeHtml(text);
+    const qNorm = normalizeText(query);
+    const tNorm = normalizeText(text);
+    const idx = tNorm.indexOf(qNorm);
+    if (idx === -1) return escapeHtml(text);
+
+    const before = text.slice(0, idx);
+    const match = text.slice(idx, idx + query.length);
+    const after = text.slice(idx + query.length);
+    return `${escapeHtml(before)}<strong>${escapeHtml(match)}</strong>${escapeHtml(after)}`;
+  }
+
+  function renderDropdown(items, query = '') {
+    dropdown.innerHTML = '';
+    if (items.length === 0) {
+      const emptyLi = document.createElement('li');
+      emptyLi.className = 'sheets-dropdown-item sheets-item-empty';
+      emptyLi.textContent = 'Nenhum vendedor encontrado';
+      dropdown.appendChild(emptyLi);
+      dropdown.style.display = 'block';
+      wrapper.classList.add('is-open');
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    items.forEach(seller => {
+      const name = typeof seller === 'string' ? seller : (seller.name || '');
+      const li = document.createElement('li');
+      li.className = 'sheets-dropdown-item';
+      li.setAttribute('data-val', name);
+      li.setAttribute('tabindex', '-1');
+      li.innerHTML = highlightMatch(name, query);
+      fragment.appendChild(li);
+    });
+
+    dropdown.appendChild(fragment);
+    dropdown.style.display = 'block';
+    wrapper.classList.add('is-open');
+
+    dropdown.querySelectorAll('.sheets-dropdown-item').forEach(itemEl => {
+      if (itemEl.classList.contains('sheets-item-empty')) return;
+      let touchStartTime = 0;
+      let itemStartX = 0;
+      let itemStartY = 0;
+
+      itemEl.addEventListener('touchstart', (e) => {
+        touchStartTime = Date.now();
+        if (e.touches && e.touches[0]) {
+          itemStartX = e.touches[0].clientX;
+          itemStartY = e.touches[0].clientY;
+        }
+      }, { passive: true });
+
+      itemEl.addEventListener('touchend', (e) => {
+        const timeDiff = Date.now() - touchStartTime;
+        let dist = 0;
+        if (e.changedTouches && e.changedTouches[0]) {
+          const dx = e.changedTouches[0].clientX - itemStartX;
+          const dy = e.changedTouches[0].clientY - itemStartY;
+          dist = Math.sqrt(dx * dx + dy * dy);
+        }
+        if (!isDragging && dist < 12 && timeDiff < 450) {
+          e.preventDefault();
+          e.stopPropagation();
+          selectItem(itemEl);
+        }
+      });
+
+      itemEl.addEventListener('click', () => {
+        if (!isDragging) {
+          selectItem(itemEl);
+        }
+      });
+    });
+  }
+
+  function selectItem(itemEl) {
+    const val = itemEl.getAttribute('data-val');
+    inputEl.value = val;
+    dropdown.style.display = 'none';
+    wrapper.classList.remove('is-open');
+    isInteractingWithDropdown = false;
+    isDragging = false;
+    if (window.SoundEffects && SoundEffects.playPop) SoundEffects.playPop();
+  }
+
+  function filterAndShow(showAllIfEmpty = false) {
+    const rawVal = inputEl.value || '';
+    const query = normalizeText(rawVal);
+    const list = (appState && Array.isArray(appState.sellers) && appState.sellers.length > 0) ? appState.sellers : INITIAL_SELLERS;
+
+    if (!query) {
+      renderDropdown(list, '');
+      return;
+    }
+
+    const matches = list.filter(s => {
+      const name = typeof s === 'string' ? s : (s.name || '');
+      return normalizeText(name).includes(query);
+    });
+
+    renderDropdown(matches, rawVal.trim());
+  }
+
+  if (!inputEl._hasSellerAutocompleteBound) {
+    inputEl._hasSellerAutocompleteBound = true;
+    inputEl.addEventListener('input', () => filterAndShow(false));
+    inputEl.addEventListener('keyup', () => filterAndShow(false));
+    inputEl.addEventListener('focus', () => {
+      inputEl.dataset.oldValue = inputEl.value;
+      inputEl.value = '';
+      filterAndShow(true);
+    });
+    inputEl.addEventListener('click', () => filterAndShow(true));
+
+    inputEl.addEventListener('blur', () => {
+      if (inputEl.value === '' && inputEl.dataset.oldValue) {
+        inputEl.value = inputEl.dataset.oldValue;
+      }
+      setTimeout(() => {
+        if (!isInteractingWithDropdown) {
+          dropdown.style.display = 'none';
+          wrapper.classList.remove('is-open');
+        }
+        isInteractingWithDropdown = false;
+      }, 350);
+    });
+  }
+
+  if (toggleBtn && !toggleBtn._hasToggleBound) {
+    toggleBtn._hasToggleBound = true;
+    function onToggle(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      isInteractingWithDropdown = true;
+      if (dropdown.style.display === 'block') {
+        dropdown.style.display = 'none';
+        wrapper.classList.remove('is-open');
+      } else {
+        inputEl.focus();
+        filterAndShow(true);
+      }
+      setTimeout(() => { isInteractingWithDropdown = false; }, 300);
+    }
+
+    toggleBtn.addEventListener('click', onToggle);
+    toggleBtn.addEventListener('touchstart', onToggle, { passive: false });
+  }
+
+  inputEl._openSellerDropdown = () => filterAndShow(true);
+}
+
+function initAllSellerAutocompletes() {
+  document.querySelectorAll('.input-vendedor').forEach(input => {
+    setupSellerAutocomplete(input);
+  });
+}
+
 // Delegação global para garantir que o autocomplete e a lista abram imediatamente no primeiro campo ou em qualquer outro
 document.addEventListener('focusin', (e) => {
   if (e.target && e.target.classList && e.target.classList.contains('input-produto')) {
@@ -280,17 +505,33 @@ document.addEventListener('focusin', (e) => {
     if (typeof e.target._openProductDropdown === 'function') {
       e.target._openProductDropdown();
     }
+  } else if (e.target && e.target.classList && e.target.classList.contains('input-vendedor')) {
+    setupSellerAutocomplete(e.target);
+    if (typeof e.target._openSellerDropdown === 'function') {
+      e.target._openSellerDropdown();
+    }
   }
 });
 
 document.addEventListener('click', (e) => {
-  const toggle = e.target && e.target.closest ? e.target.closest('.btn-product-dropdown-toggle') : null;
-  if (toggle) {
-    const wrap = toggle.closest('.product-autocomplete-wrapper');
+  const toggleProd = e.target && e.target.closest ? e.target.closest('.btn-product-dropdown-toggle') : null;
+  if (toggleProd) {
+    const wrap = toggleProd.closest('.product-autocomplete-wrapper');
     if (wrap) {
       const input = wrap.querySelector('.input-produto');
       if (input) {
         setupProductAutocomplete(input);
+      }
+    }
+  }
+
+  const toggleSeller = e.target && e.target.closest ? e.target.closest('.btn-seller-dropdown-toggle') : null;
+  if (toggleSeller) {
+    const wrap = toggleSeller.closest('.seller-autocomplete-wrapper');
+    if (wrap) {
+      const input = wrap.querySelector('.input-vendedor');
+      if (input) {
+        setupSellerAutocomplete(input);
       }
     }
   }
@@ -2469,6 +2710,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderSellersList();
     renderSellersDatalist();
     renderSellersSelect();
+    initAllSellerAutocompletes();
     
     // Products & Sales setup
     renderProductsDatalist();
@@ -5368,77 +5610,93 @@ function setupEventListeners() {
   DOM.productSearchInput.addEventListener('input', renderProductsList);
 
   // Bulk Spreadsheet Import events
-  DOM.btnOpenBulkImport.addEventListener('click', openBulkImportModal);
-  DOM.btnCloseBulkModal.addEventListener('click', closeBulkImportModal);
-  DOM.btnCancelBulkModal.addEventListener('click', closeBulkImportModal);
-  DOM.bulkImportModalBackdrop.addEventListener('click', (e) => {
-    if (e.target === DOM.bulkImportModalBackdrop) closeBulkImportModal();
-  });
+  if (DOM.btnOpenBulkImport) DOM.btnOpenBulkImport.addEventListener('click', openBulkImportModal);
+  if (DOM.btnCloseBulkModal) DOM.btnCloseBulkModal.addEventListener('click', closeBulkImportModal);
+  if (DOM.btnCancelBulkModal) DOM.btnCancelBulkModal.addEventListener('click', closeBulkImportModal);
+  if (DOM.bulkImportModalBackdrop) {
+    DOM.bulkImportModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === DOM.bulkImportModalBackdrop) closeBulkImportModal();
+    });
+  }
 
-  DOM.tabUploadFileBtn.addEventListener('click', () => {
-    DOM.tabUploadFileBtn.classList.add('active');
-    DOM.tabPasteTextBtn.classList.remove('active');
-    DOM.panelUploadFile.style.display = 'block';
-    DOM.panelPasteText.style.display = 'none';
-    SoundEffects.playPop();
-  });
+  if (DOM.tabUploadFileBtn) {
+    DOM.tabUploadFileBtn.addEventListener('click', () => {
+      DOM.tabUploadFileBtn.classList.add('active');
+      if (DOM.tabPasteTextBtn) DOM.tabPasteTextBtn.classList.remove('active');
+      if (DOM.panelUploadFile) DOM.panelUploadFile.style.display = 'block';
+      if (DOM.panelPasteText) DOM.panelPasteText.style.display = 'none';
+      SoundEffects.playPop();
+    });
+  }
 
-  DOM.tabPasteTextBtn.addEventListener('click', () => {
-    DOM.tabPasteTextBtn.classList.add('active');
-    DOM.tabUploadFileBtn.classList.remove('active');
-    DOM.panelPasteText.style.display = 'block';
-    DOM.panelUploadFile.style.display = 'none';
-    DOM.bulkPasteTextarea.focus();
-    SoundEffects.playPop();
-  });
+  if (DOM.tabPasteTextBtn) {
+    DOM.tabPasteTextBtn.addEventListener('click', () => {
+      DOM.tabPasteTextBtn.classList.add('active');
+      if (DOM.tabUploadFileBtn) DOM.tabUploadFileBtn.classList.remove('active');
+      if (DOM.panelPasteText) DOM.panelPasteText.style.display = 'block';
+      if (DOM.panelUploadFile) DOM.panelUploadFile.style.display = 'none';
+      if (DOM.bulkPasteTextarea) DOM.bulkPasteTextarea.focus();
+      SoundEffects.playPop();
+    });
+  }
 
-  DOM.fileDropzone.addEventListener('click', () => DOM.bulkCsvFileInput.click());
+  if (DOM.fileDropzone) {
+    DOM.fileDropzone.addEventListener('click', () => {
+      if (DOM.bulkCsvFileInput) DOM.bulkCsvFileInput.click();
+    });
 
-  DOM.fileDropzone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    DOM.fileDropzone.classList.add('drag-over');
-  });
+    DOM.fileDropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      DOM.fileDropzone.classList.add('drag-over');
+    });
 
-  DOM.fileDropzone.addEventListener('dragleave', () => DOM.fileDropzone.classList.remove('drag-over'));
+    DOM.fileDropzone.addEventListener('dragleave', () => DOM.fileDropzone.classList.remove('drag-over'));
 
-  DOM.fileDropzone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    DOM.fileDropzone.classList.remove('drag-over');
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFileSelection(e.dataTransfer.files[0]);
-    }
-  });
+    DOM.fileDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      DOM.fileDropzone.classList.remove('drag-over');
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFileSelection(e.dataTransfer.files[0]);
+      }
+    });
+  }
 
-  DOM.bulkCsvFileInput.addEventListener('change', (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      handleFileSelection(e.target.files[0]);
-    }
-  });
+  if (DOM.bulkCsvFileInput) {
+    DOM.bulkCsvFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        handleFileSelection(e.target.files[0]);
+      }
+    });
+  }
 
-  DOM.btnRemoveFile.addEventListener('click', () => {
-    DOM.bulkCsvFileInput.value = '';
-    DOM.selectedFileInfo.style.display = 'none';
-    DOM.bulkPreviewSection.style.display = 'none';
-    DOM.btnConfirmBulkImport.disabled = true;
-    appState.parsedBulkProducts = [];
-    SoundEffects.playPop();
-  });
+  if (DOM.btnRemoveFile) {
+    DOM.btnRemoveFile.addEventListener('click', () => {
+      if (DOM.bulkCsvFileInput) DOM.bulkCsvFileInput.value = '';
+      if (DOM.selectedFileInfo) DOM.selectedFileInfo.style.display = 'none';
+      if (DOM.bulkPreviewSection) DOM.bulkPreviewSection.style.display = 'none';
+      if (DOM.btnConfirmBulkImport) DOM.btnConfirmBulkImport.disabled = true;
+      appState.parsedBulkProducts = [];
+      SoundEffects.playPop();
+    });
+  }
 
-  DOM.btnProcessPastedText.addEventListener('click', () => {
-    const text = DOM.bulkPasteTextarea.value.trim();
-    if (!text) {
-      showToast('Cole o conteúdo da planilha no campo antes de processar.', 'error');
-      DOM.bulkPasteTextarea.focus();
-      return;
-    }
-    const products = parseSpreadsheetText(text);
-    displayBulkPreview(products);
-  });
+  if (DOM.btnProcessPastedText) {
+    DOM.btnProcessPastedText.addEventListener('click', () => {
+      const text = DOM.bulkPasteTextarea ? DOM.bulkPasteTextarea.value.trim() : '';
+      if (!text) {
+        showToast('Cole o conteúdo da planilha no campo antes de processar.', 'error');
+        if (DOM.bulkPasteTextarea) DOM.bulkPasteTextarea.focus();
+        return;
+      }
+      const products = parseSpreadsheetText(text);
+      displayBulkPreview(products);
+    });
+  }
 
-  DOM.btnDownloadTemplate.addEventListener('click', downloadProductsTemplateCSV);
-  DOM.btnDownloadSampleCSV.addEventListener('click', downloadProductsTemplateCSV);
-  DOM.btnExportProductsCSV.addEventListener('click', exportProductsToCSV);
-  DOM.btnConfirmBulkImport.addEventListener('click', executeBulkImport);
+  if (DOM.btnDownloadTemplate) DOM.btnDownloadTemplate.addEventListener('click', downloadProductsTemplateCSV);
+  if (DOM.btnDownloadSampleCSV) DOM.btnDownloadSampleCSV.addEventListener('click', downloadProductsTemplateCSV);
+  if (DOM.btnExportProductsCSV) DOM.btnExportProductsCSV.addEventListener('click', exportProductsToCSV);
+  if (DOM.btnConfirmBulkImport) DOM.btnConfirmBulkImport.addEventListener('click', executeBulkImport);
 
   // Settings events
   if (DOM.btnSalvarConfig) DOM.btnSalvarConfig.addEventListener('click', saveConfigToStorage);
@@ -5811,5 +6069,9 @@ document.addEventListener('click', (e) => {
     document.querySelectorAll('.product-suggestions-dropdown').forEach(d => d.style.display = 'none');
     document.querySelectorAll('.product-autocomplete-wrapper').forEach(w => w.classList.remove('is-open'));
     document.querySelectorAll('.product-entry').forEach(pe => pe.classList.remove('has-open-dropdown'));
+  }
+  if (!e.target.closest('.seller-autocomplete-wrapper')) {
+    document.querySelectorAll('.seller-suggestions-dropdown').forEach(d => d.style.display = 'none');
+    document.querySelectorAll('.seller-autocomplete-wrapper').forEach(w => w.classList.remove('is-open'));
   }
 });
