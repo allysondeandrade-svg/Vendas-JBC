@@ -1274,7 +1274,7 @@ const SHEET_NAMES = {
 
 function doGet(e) {
   try {
-    var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : "getAll";
+    var action = (e &amp;&amp; e.parameter &amp;&amp; e.parameter.action) ? e.parameter.action : "getAll";
     if (action === "ping") {
       return createJsonResponse({ status: "success", message: "Conexão ativa 24h com Vendas JBC!" });
     }
@@ -1304,14 +1304,14 @@ function doPost(e) {
       var dataHora = sale.dateString || Utilities.formatDate(new Date(), Session.getScriptTimeZone() || "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
 
       // Se houver 2 ou mais produtos anotados na venda, cria uma linha para cada produto com SKU e Preço individuais
-      if (sale.itens && Array.isArray(sale.itens) && sale.itens.length > 0) {
+      if (sale.itens &amp;&amp; Array.isArray(sale.itens) &amp;&amp; sale.itens.length &gt; 0) {
         var count = sale.itens.length;
-        for (var idx = count - 1; idx >= 0; idx--) {
+        for (var idx = count - 1; idx &gt;= 0; idx--) {
           var item = sale.itens[idx];
           var itemSku = String(item.sku || "").trim();
           var itemProduto = String(item.produto || sale.produto || "").trim();
           
-          if (!itemSku && itemProduto.indexOf(" - ") !== -1) {
+          if (!itemSku &amp;&amp; itemProduto.indexOf(" - ") !== -1) {
             var parts = itemProduto.split(" - ");
             itemSku = parts[0].trim();
             itemProduto = parts.slice(1).join(" - ").trim();
@@ -1323,10 +1323,10 @@ function doPost(e) {
 
           var itemComissao = "0,00";
           var itemLucro = "0,00";
-          if (typeof item.basePrice === "number" && typeof item.preco === "number") {
+          if (typeof item.basePrice === "number" &amp;&amp; typeof item.preco === "number") {
             itemComissao = (item.preco - item.basePrice).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           }
-          if (typeof item.basePrice === "number" && typeof item.cost === "number") {
+          if (typeof item.basePrice === "number" &amp;&amp; typeof item.cost === "number") {
             itemLucro = (item.basePrice - item.cost).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           }
 
@@ -1342,16 +1342,16 @@ function doPost(e) {
             sale.endereco || "",
             (idx === 0) ? (sale.frete || "") : "Incluso",
             sale.pagamento || "",
-            (count > 1 ? ("Item " + (idx + 1) + "/" + count + " - " + (sale.observacao || "")) : (sale.observacao || "")),
+            (count &gt; 1 ? ("Item " + (idx + 1) + "/" + count + " - " + (sale.observacao || "")) : (sale.observacao || "")),
             itemComissao !== "0,00" ? itemComissao : (sale.comissao || "0,00"),
             itemLucro !== "0,00" ? itemLucro : (sale.lucro || "0,00"),
-            (sale.id || ("sale-" + new Date().getTime())) + (count > 1 ? ("-" + (idx + 1)) : "")
+            (sale.id || ("sale-" + new Date().getTime())) + (count &gt; 1 ? ("-" + (idx + 1)) : "")
           ]]);
         }
       } else {
         var singleSku = String(sale.sku || "").trim();
         var singleProduto = String(sale.produto || "").trim();
-        if (!singleSku && singleProduto.indexOf(" - ") !== -1) {
+        if (!singleSku &amp;&amp; singleProduto.indexOf(" - ") !== -1) {
           var pParts = singleProduto.split(" - ");
           singleSku = pParts[0].trim();
           singleProduto = pParts.slice(1).join(" - ").trim();
@@ -1384,12 +1384,12 @@ function doPost(e) {
       var dataValues = editSheet.getDataRange().getValues();
       var idIndex = editSheet.getLastColumn() - 1;
 
-      for (var i = 1; i < dataValues.length; i++) {
+      for (var i = 1; i &lt; dataValues.length; i++) {
         var rowId = String(dataValues[i][idIndex] || dataValues[i][12] || dataValues[i][13] || "");
         if (rowId === String(editData.id)) {
           var rowNum = i + 1;
           var numCols = editSheet.getLastColumn();
-          if (numCols >= 14) {
+          if (numCols &gt;= 14) {
             editSheet.getRange(rowNum, 1, 1, 14).setValues([[
               editData.dateString || String(dataValues[i][0]),
               editData.vendedor || "",
@@ -1430,26 +1430,76 @@ function doPost(e) {
     }
 
     if (action === "deleteSale") {
-      var delId = String(payload.id || (payload.data && payload.data.id) || "");
+      var delId = String(payload.id || (payload.data &amp;&amp; payload.data.id) || "").trim();
+      var delProd = String(payload.produto || (payload.data &amp;&amp; payload.data.produto) || "").toLowerCase().trim();
+      var delVend = String(payload.vendedor || (payload.data &amp;&amp; payload.data.vendedor) || "").toLowerCase().trim();
+      var delPreco = String(payload.preco || (payload.data &amp;&amp; payload.data.preco) || "").replace("R$", "").replace(/\s/g, "").trim();
+      var delData = String(payload.dateString || (payload.data &amp;&amp; payload.data.dateString) || "").trim();
+
       var delSheet = getSalesSheet();
       var dValues = delSheet.getDataRange().getValues();
-      var colIdx = delSheet.getLastColumn() - 1;
+      if (dValues.length &lt;= 1) {
+        return createJsonResponse({ status: "success", message: "Planilha vazia." });
+      }
 
-      // Se o ID for de um grupo com hífen (ex: sale-12345-1), também permite excluir os outros ou excluir o match exato
+      var lastColIdx = delSheet.getLastColumn() - 1;
       var deleted = false;
-      for (var d = dValues.length - 1; d >= 1; d--) {
-        var curId = String(dValues[d][colIdx] || dValues[d][12] || dValues[d][13] || "");
-        if (curId === delId) {
-          delSheet.deleteRow(d + 1);
-          deleted = true;
-          break;
+
+      // 1ª Tentativa: busca reversa por ID exato em qualquer uma das possíveis colunas de ID
+      if (delId) {
+        for (var d = dValues.length - 1; d &gt;= 1; d--) {
+          var row = dValues[d];
+          var curId = String(row[lastColIdx] || row[13] || row[12] || "").trim();
+          if (curId === delId) {
+            delSheet.deleteRow(d + 1);
+            deleted = true;
+            break;
+          }
+        }
+      }
+
+      // 2ª Tentativa: se não encontrou por ID (ex: linhas importadas antigas sem ID salvo),
+      // faz match pelos dados da venda: Data/Hora + Vendedor + Produto
+      if (!deleted &amp;&amp; (delProd || delVend || delData)) {
+        for (var d2 = dValues.length - 1; d2 &gt;= 1; d2--) {
+          var r = dValues[d2];
+          var rawDate = r[0];
+          var rDateStr = "";
+          if (Object.prototype.toString.call(rawDate) === "[object Date]" || rawDate instanceof Date) {
+            rDateStr = Utilities.formatDate(rawDate, Session.getScriptTimeZone() || "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
+          } else {
+            rDateStr = String(rawDate || "").trim();
+          }
+
+          var rVend = String(r[1] || "").toLowerCase().trim();
+          // Colunas SKU e Produto
+          var rSku = String(r[2] || "").toLowerCase().trim();
+          var rProd = String(r[3] || r[2] || "").toLowerCase().trim();
+          var rPreco = String(r[4] || r[3] || "").replace("R$", "").replace(/\s/g, "").trim();
+
+          var matchVend = !delVend || rVend === delVend;
+          var matchProd = !delProd || rProd === delProd || rSku === delProd || rProd.indexOf(delProd) !== -1;
+          var matchPreco = !delPreco || rPreco === delPreco;
+
+          var matchData = true;
+          if (delData &amp;&amp; rDateStr) {
+            var shortDelData = delData.substring(0, 10);
+            var shortRDate = rDateStr.substring(0, 10);
+            matchData = (delData === rDateStr) || (shortDelData === shortRDate);
+          }
+
+          if (matchVend &amp;&amp; matchProd &amp;&amp; matchData &amp;&amp; matchPreco) {
+            delSheet.deleteRow(d2 + 1);
+            deleted = true;
+            break;
+          }
         }
       }
 
       if (deleted) {
         return createJsonResponse({ status: "success", message: "Venda excluída da aba V!" });
       }
-      return createJsonResponse({ status: "error", message: "Venda não encontrada" });
+      return createJsonResponse({ status: "success", message: "Venda removida (ou já não constava na planilha)." });
     }
 
     // Upsert individual de Produto
@@ -1464,10 +1514,10 @@ function doPost(e) {
       var prodList = payload.products || [];
       var pSheet = getProductsSheet();
       var lRow = pSheet.getLastRow();
-      if (lRow > 1) {
+      if (lRow &gt; 1) {
         pSheet.getRange(2, 1, lRow - 1, Math.max(pSheet.getLastColumn(), 4)).clearContent();
       }
-      if (prodList.length > 0) {
+      if (prodList.length &gt; 0) {
         var pRows = prodList.map(function(p, idx) {
           return [
             p.sku || ("SKU-" + (idx + 1)),
@@ -1510,7 +1560,7 @@ function getSalesSheet() {
     formatHeaderRow(sheet, headers.length);
   } else {
     var currentHeaders = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0].map(function(h) { return String(h || "").trim().toLowerCase(); });
-    if (currentHeaders.indexOf("sku") === -1 && currentHeaders.length <= 13) {
+    if (currentHeaders.indexOf("sku") === -1 &amp;&amp; currentHeaders.length &lt;= 13) {
       sheet.insertColumnAfter(2); // Insere após Vendedor
       sheet.getRange(1, 3).setValue("SKU");
       formatHeaderRow(sheet, sheet.getLastColumn());
@@ -1544,7 +1594,7 @@ function formatHeaderRow(sheet, numCols) {
 function readProductsFromSheet() {
   var sheet = getProductsSheet();
   var values = sheet.getDataRange().getValues();
-  if (values.length <= 1) return [];
+  if (values.length &lt;= 1) return [];
 
   var headers = values[0].map(function(h) { return String(h || "").toLowerCase().trim(); });
   
@@ -1559,16 +1609,16 @@ function readProductsFromSheet() {
   if (idxPreco === -1) idxPreco = 2; // Coluna C padrão
 
   var idxCusto = headers.findIndex(function(h) { return h.indexOf("custo") !== -1 || h.indexOf("cust") !== -1; });
-  if (idxCusto === -1 && headers.length > 3) idxCusto = 3; // Coluna D padrão
+  if (idxCusto === -1 &amp;&amp; headers.length &gt; 3) idxCusto = 3; // Coluna D padrão
 
   var prods = [];
-  for (var i = 1; i < values.length; i++) {
+  for (var i = 1; i &lt; values.length; i++) {
     var row = values[i];
     var skuVal = idxSku !== -1 ? String(row[idxSku] || "").trim() : "";
     var nameVal = idxProd !== -1 ? String(row[idxProd] || "").trim() : "";
     
     // Se a linha estiver completamente vazia, pula
-    if (!nameVal && !skuVal) continue;
+    if (!nameVal &amp;&amp; !skuVal) continue;
 
     // Se o SKU estiver preenchido mas o nome vazio, usa o SKU como nome e vice-versa
     if (!nameVal) nameVal = skuVal;
@@ -1576,7 +1626,7 @@ function readProductsFromSheet() {
 
     // Trata formatações numéricas como R$ 30,00 ou números diretos
     var precoVal = "0,00";
-    if (idxPreco !== -1 && row[idxPreco] !== "" && row[idxPreco] !== undefined) {
+    if (idxPreco !== -1 &amp;&amp; row[idxPreco] !== "" &amp;&amp; row[idxPreco] !== undefined) {
       if (typeof row[idxPreco] === "number") {
         precoVal = row[idxPreco].toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       } else {
@@ -1585,7 +1635,7 @@ function readProductsFromSheet() {
     }
 
     var custoVal = "";
-    if (idxCusto !== -1 && row[idxCusto] !== "" && row[idxCusto] !== undefined) {
+    if (idxCusto !== -1 &amp;&amp; row[idxCusto] !== "" &amp;&amp; row[idxCusto] !== undefined) {
       if (typeof row[idxCusto] === "number") {
         custoVal = row[idxCusto].toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       } else {
@@ -1624,17 +1674,17 @@ function upsertSingleProduct(prod) {
   if (idxPreco === -1) idxPreco = 2;
 
   var idxCusto = headers.findIndex(function(h) { return h.indexOf("custo") !== -1; });
-  if (idxCusto === -1 && headers.length > 3) idxCusto = 3;
+  if (idxCusto === -1 &amp;&amp; headers.length &gt; 3) idxCusto = 3;
 
   var targetSku = String(prod.sku || "").toUpperCase().trim();
   var targetName = String(prod.name || prod.product || "").toLowerCase().trim();
 
   var rowIndex = -1;
-  for (var i = 1; i < values.length; i++) {
+  for (var i = 1; i &lt; values.length; i++) {
     var rSku = idxSku !== -1 ? String(values[i][idxSku]).toUpperCase().trim() : "";
     var rName = idxProd !== -1 ? String(values[i][idxProd]).toLowerCase().trim() : "";
 
-    if ((targetSku && rSku === targetSku) || (targetName && rName === targetName)) {
+    if ((targetSku &amp;&amp; rSku === targetSku) || (targetName &amp;&amp; rName === targetName)) {
       rowIndex = i + 1;
       break;
     }
@@ -1643,11 +1693,11 @@ function upsertSingleProduct(prod) {
   var formattedPrice = prod.price !== undefined ? String(prod.price).replace("R$", "").trim() : "0,00";
   var formattedCost = prod.cost !== undefined ? String(prod.cost).replace("R$", "").trim() : "";
 
-  if (rowIndex > 0) {
-    if (idxSku !== -1 && prod.sku) sheet.getRange(rowIndex, idxSku + 1).setValue(prod.sku);
-    if (idxProd !== -1 && (prod.name || prod.product)) sheet.getRange(rowIndex, idxProd + 1).setValue(prod.name || prod.product);
-    if (idxPreco !== -1 && prod.price !== undefined) sheet.getRange(rowIndex, idxPreco + 1).setValue(formattedPrice);
-    if (idxCusto !== -1 && prod.cost !== undefined) sheet.getRange(rowIndex, idxCusto + 1).setValue(formattedCost);
+  if (rowIndex &gt; 0) {
+    if (idxSku !== -1 &amp;&amp; prod.sku) sheet.getRange(rowIndex, idxSku + 1).setValue(prod.sku);
+    if (idxProd !== -1 &amp;&amp; (prod.name || prod.product)) sheet.getRange(rowIndex, idxProd + 1).setValue(prod.name || prod.product);
+    if (idxPreco !== -1 &amp;&amp; prod.price !== undefined) sheet.getRange(rowIndex, idxPreco + 1).setValue(formattedPrice);
+    if (idxCusto !== -1 &amp;&amp; prod.cost !== undefined) sheet.getRange(rowIndex, idxCusto + 1).setValue(formattedCost);
   } else {
     sheet.appendRow([
       prod.sku || "",
@@ -1661,20 +1711,20 @@ function upsertSingleProduct(prod) {
 function deleteProductFromSheet(prodInfo) {
   var sheet = getProductsSheet();
   var values = sheet.getDataRange().getValues();
-  if (values.length <= 1) return;
+  if (values.length &lt;= 1) return;
 
-  var sku = String((prodInfo && (prodInfo.sku || prodInfo.id)) || "").toUpperCase().trim();
-  var name = String((prodInfo && (prodInfo.name || prodInfo.product)) || "").toLowerCase().trim();
+  var sku = String((prodInfo &amp;&amp; (prodInfo.sku || prodInfo.id)) || "").toUpperCase().trim();
+  var name = String((prodInfo &amp;&amp; (prodInfo.name || prodInfo.product)) || "").toLowerCase().trim();
 
   var headers = values[0].map(function(h) { return String(h || "").toLowerCase().trim(); });
   var idxSku = headers.indexOf("sku") !== -1 ? headers.indexOf("sku") : 0;
   var idxProd = headers.findIndex(function(h) { return h.indexOf("nome") !== -1 || h.indexOf("prod") !== -1; });
   if (idxProd === -1) idxProd = 1;
 
-  for (var i = 1; i < values.length; i++) {
+  for (var i = 1; i &lt; values.length; i++) {
     var rSku = idxSku !== -1 ? String(values[i][idxSku]).toUpperCase().trim() : "";
     var rName = idxProd !== -1 ? String(values[i][idxProd]).toLowerCase().trim() : "";
-    if ((sku && rSku === sku) || (name && rName === name)) {
+    if ((sku &amp;&amp; rSku === sku) || (name &amp;&amp; rName === name)) {
       sheet.deleteRow(i + 1);
       return;
     }
@@ -1684,16 +1734,16 @@ function deleteProductFromSheet(prodInfo) {
 function readSalesFromSheet() {
   var sheet = getSalesSheet();
   var values = sheet.getDataRange().getValues();
-  if (values.length <= 1) return [];
+  if (values.length &lt;= 1) return [];
 
   var headers = values[0].map(function(h) { return String(h || "").toLowerCase().trim(); });
   var hasSkuCol = headers.indexOf("sku") !== -1;
   var colId = values[0].length - 1;
 
   var sales = [];
-  for (var i = 1; i < values.length; i++) {
+  for (var i = 1; i &lt; values.length; i++) {
     var row = values[i];
-    if (!row[0] && !row[1] && !row[2]) continue;
+    if (!row[0] &amp;&amp; !row[1] &amp;&amp; !row[2]) continue;
 
     var rawDate = row[0];
     var dateFormatted = "";
@@ -1832,10 +1882,34 @@ function createJsonResponse(obj) {
     </div>
   </div>
 
+  <!-- Modal de Confirmação de Exclusão de Venda -->
+  <div class="modal-backdrop" id="deleteSaleModalBackdrop" style="display: none;">
+    <div class="modal-content" style="max-width: 380px; text-align: center; border-radius: 16px;">
+      <div style="padding: 24px 20px 16px;">
+        <div style="width: 52px; height: 52px; border-radius: 50%; background: #fee2e2; color: #ef4444; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+        </div>
+        <h3 style="font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Excluir Venda?</h3>
+        <p id="deleteSaleModalDesc" style="font-size: 13.5px; color: #64748b; line-height: 1.5; margin-bottom: 20px;">
+          Esta ação removerá o registro do histórico do aplicativo e da planilha conectada.
+        </p>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button type="button" class="btn-cancel" id="btnCancelDeleteSale" style="flex: 1; padding: 11px 0;">Cancelar</button>
+          <button type="button" class="btn-danger-confirm" id="btnConfirmDeleteSale" style="flex: 1; padding: 11px 0; background: #ef4444; color: #fff; border: none; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer;">Sim, Excluir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Offscreen Container dedicado para Geração de PDF 100% Nítido sem cortes -->
   <div id="garantiaPdfOffscreen" style="position: absolute; left: -9999px; top: 0; width: 800px; background: #ffffff; padding: 32px; box-sizing: border-box; font-family: 'Inter', Arial, sans-serif; color: #111827;"></div>
 
   <!-- App JavaScript Logic (com cache-busting para atualizar no GitHub Pages) -->
-  <script src="app.js?v=1793457900000"></script>
+  <script src="app.js?v=1795009000000"></script>
 </body>
 </html>

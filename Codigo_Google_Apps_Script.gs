@@ -171,26 +171,76 @@ function doPost(e) {
     }
 
     if (action === "deleteSale") {
-      var delId = String(payload.id || (payload.data && payload.data.id) || "");
+      var delId = String(payload.id || (payload.data && payload.data.id) || "").trim();
+      var delProd = String(payload.produto || (payload.data && payload.data.produto) || "").toLowerCase().trim();
+      var delVend = String(payload.vendedor || (payload.data && payload.data.vendedor) || "").toLowerCase().trim();
+      var delPreco = String(payload.preco || (payload.data && payload.data.preco) || "").replace("R$", "").replace(/\s/g, "").trim();
+      var delData = String(payload.dateString || (payload.data && payload.data.dateString) || "").trim();
+
       var delSheet = getSalesSheet();
       var dValues = delSheet.getDataRange().getValues();
-      var colIdx = delSheet.getLastColumn() - 1;
+      if (dValues.length <= 1) {
+        return createJsonResponse({ status: "success", message: "Planilha vazia." });
+      }
 
-      // Se o ID for de um grupo com hífen (ex: sale-12345-1), também permite excluir os outros ou excluir o match exato
+      var lastColIdx = delSheet.getLastColumn() - 1;
       var deleted = false;
-      for (var d = dValues.length - 1; d >= 1; d--) {
-        var curId = String(dValues[d][colIdx] || dValues[d][12] || dValues[d][13] || "");
-        if (curId === delId) {
-          delSheet.deleteRow(d + 1);
-          deleted = true;
-          break;
+
+      // 1ª Tentativa: busca reversa por ID exato em qualquer uma das possíveis colunas de ID
+      if (delId) {
+        for (var d = dValues.length - 1; d >= 1; d--) {
+          var row = dValues[d];
+          var curId = String(row[lastColIdx] || row[13] || row[12] || "").trim();
+          if (curId === delId) {
+            delSheet.deleteRow(d + 1);
+            deleted = true;
+            break;
+          }
+        }
+      }
+
+      // 2ª Tentativa: se não encontrou por ID (ex: linhas importadas antigas sem ID salvo),
+      // faz match pelos dados da venda: Data/Hora + Vendedor + Produto
+      if (!deleted && (delProd || delVend || delData)) {
+        for (var d2 = dValues.length - 1; d2 >= 1; d2--) {
+          var r = dValues[d2];
+          var rawDate = r[0];
+          var rDateStr = "";
+          if (Object.prototype.toString.call(rawDate) === "[object Date]" || rawDate instanceof Date) {
+            rDateStr = Utilities.formatDate(rawDate, Session.getScriptTimeZone() || "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
+          } else {
+            rDateStr = String(rawDate || "").trim();
+          }
+
+          var rVend = String(r[1] || "").toLowerCase().trim();
+          // Colunas SKU e Produto
+          var rSku = String(r[2] || "").toLowerCase().trim();
+          var rProd = String(r[3] || r[2] || "").toLowerCase().trim();
+          var rPreco = String(r[4] || r[3] || "").replace("R$", "").replace(/\s/g, "").trim();
+
+          var matchVend = !delVend || rVend === delVend;
+          var matchProd = !delProd || rProd === delProd || rSku === delProd || rProd.indexOf(delProd) !== -1;
+          var matchPreco = !delPreco || rPreco === delPreco;
+
+          var matchData = true;
+          if (delData && rDateStr) {
+            var shortDelData = delData.substring(0, 10);
+            var shortRDate = rDateStr.substring(0, 10);
+            matchData = (delData === rDateStr) || (shortDelData === shortRDate);
+          }
+
+          if (matchVend && matchProd && matchData && matchPreco) {
+            delSheet.deleteRow(d2 + 1);
+            deleted = true;
+            break;
+          }
         }
       }
 
       if (deleted) {
         return createJsonResponse({ status: "success", message: "Venda excluída da aba V!" });
       }
-      return createJsonResponse({ status: "error", message: "Venda não encontrada" });
+      return createJsonResponse({ status: "success", message: "Venda removida (ou já não constava na planilha)." });
     }
 
     // Upsert individual de Produto

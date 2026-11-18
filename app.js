@@ -561,7 +561,8 @@ const STORAGE_KEYS = {
   SELLERS: 'app_vendedores_list_v4',
   CONFIG: 'app_settings_config_v4',
   THEME: 'app_theme_mode_v2',
-  FRAME_MODE: 'app_frame_mode_v2'
+  FRAME_MODE: 'app_frame_mode_v2',
+  DELETED_SALES: 'app_deleted_sale_ids_v1'
 };
 
 const DEFAULT_WHATSAPP_TEMPLATE = 
@@ -3969,8 +3970,8 @@ function renderSalesHistory() {
               <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
             </svg>
           </button>
-          <button type="button" class="btn-icon-action delete-action" title="Excluir venda" onclick="window.onDeleteSale('${sale.id}')">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+          <button type="button" class="btn-icon-action delete-action" title="Excluir venda" data-sale-id="${escapeHtml(sale.id)}" onclick="window.onDeleteSale('${escapeHtml(sale.id)}')">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="pointer-events: none;">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
             </svg>
@@ -4067,31 +4068,95 @@ window.onShareSaleFromList = function(saleId) {
   }
 };
 
-window.onDeleteSale = async function(saleId) {
-  if (confirm('Deseja realmente excluir esta venda do histórico?')) {
-    appState.sales = appState.sales.filter(s => s.id !== saleId);
-    saveSalesToStorage();
-    renderSalesHistory();
-    updateDatabaseMetrics();
-    showToast('Venda excluída localmente.', 'info');
-    SoundEffects.playPop();
+// Gerenciamento de Exclusão de Vendas com Modal Personalizado e Sincronização Google Sheets
+let pendingSaleToDelete = null;
 
-    if (appState.config.googleSheetUrl && appState.config.autoSyncSheet) {
-      try {
-        const res = await fetch(appState.config.googleSheetUrl, {
-          method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'deleteSale', id: saleId })
-        });
-        const result = await res.json();
-        if (result && result.status === 'success') {
-          showToast('☁️ Venda excluída da Planilha Google!', 'success');
-        }
-      } catch(err) {
-        console.warn('Erro ao excluir do Google Sheets', err);
-      }
-    }
+function getDeletedSaleIds() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.DELETED_SALES);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function addDeletedSaleId(saleId) {
+  if (!saleId) return;
+  const list = getDeletedSaleIds();
+  if (!list.includes(saleId)) {
+    list.push(saleId);
+    // Limita aos últimos 500 IDs para não acumular indefinidamente
+    if (list.length > 500) list.shift();
+    localStorage.setItem(STORAGE_KEYS.DELETED_SALES, JSON.stringify(list));
+  }
+}
+
+window.onDeleteSale = function(saleId) {
+  const sale = appState.sales.find(s => s.id === saleId);
+  if (!sale) {
+    showToast('Venda não encontrada.', 'error');
+    return;
+  }
+
+  pendingSaleToDelete = sale;
+
+  const modal = document.getElementById('deleteSaleModalBackdrop');
+  const desc = document.getElementById('deleteSaleModalDesc');
+  if (desc) {
+    const prodNome = sale.produto || (sale.itens && sale.itens[0] && sale.itens[0].produto) || 'item';
+    desc.textContent = `Deseja realmente excluir a venda de "${prodNome}" (R$ ${sale.preco || '0,00'}) de ${sale.vendedor || 'vendedor'}?`;
+  }
+  if (modal) {
+    modal.style.display = 'flex';
+  } else {
+    // Fallback se o modal não existir por algum motivo
+    executeDeleteSale(sale);
   }
 };
+
+async function executeDeleteSale(sale) {
+  if (!sale) return;
+  const saleId = sale.id;
+
+  // 1. Remove da memória e do localStorage imediatamente
+  appState.sales = appState.sales.filter(s => s.id !== saleId);
+  addDeletedSaleId(saleId);
+  saveSalesToStorage();
+  renderSalesHistory();
+  updateDatabaseMetrics();
+  showToast('🗑️ Venda excluída com sucesso!', 'info');
+  SoundEffects.playPop();
+
+  // 2. Envia requisição de exclusão para a aba V do Google Sheets
+  if (appState.config.googleSheetUrl && appState.config.autoSyncSheet) {
+    try {
+      updateGoogleSheetStatusUI('syncing', 'Excluindo na planilha...');
+      const res = await fetch(appState.config.googleSheetUrl, {
+        method: 'POST',
+        redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'deleteSale',
+          id: saleId,
+          produto: sale.produto,
+          vendedor: sale.vendedor,
+          preco: sale.preco,
+          dateString: sale.dateString
+        })
+      });
+      const result = await res.json();
+      if (result && result.status === 'success') {
+        updateGoogleSheetStatusUI('connected');
+        showToast('☁️ Venda excluída da aba V na Planilha!', 'success');
+      } else {
+        updateGoogleSheetStatusUI('connected');
+      }
+    } catch (err) {
+      console.warn('Erro ao excluir do Google Sheets:', err);
+      updateGoogleSheetStatusUI('connected');
+    }
+  }
+}
 
 window.onEditSale = function(saleId) {
   const sale = appState.sales.find(s => s.id === saleId);
@@ -6045,6 +6110,54 @@ function setupEventListeners() {
       if (e.target === DOM.garantiaModalBackdrop) closeGarantiaModal();
     });
   }
+
+  // Event Delegation para cliques no Histórico de Vendas (evita falhas de inline click em mobile)
+  if (DOM.salesList) {
+    DOM.salesList.addEventListener('click', (e) => {
+      const delBtn = e.target.closest('.delete-action');
+      if (delBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const saleId = delBtn.getAttribute('data-sale-id');
+        if (saleId) {
+          window.onDeleteSale(saleId);
+        }
+      }
+    });
+  }
+
+  // Modal de Confirmação de Exclusão de Venda
+  const deleteModal = document.getElementById('deleteSaleModalBackdrop');
+  const btnCancelDelete = document.getElementById('btnCancelDeleteSale');
+  const btnConfirmDelete = document.getElementById('btnConfirmDeleteSale');
+
+  if (btnCancelDelete && deleteModal) {
+    btnCancelDelete.addEventListener('click', () => {
+      deleteModal.style.display = 'none';
+      pendingSaleToDelete = null;
+      SoundEffects.playPop();
+    });
+  }
+
+  if (deleteModal) {
+    deleteModal.addEventListener('click', (e) => {
+      if (e.target === deleteModal) {
+        deleteModal.style.display = 'none';
+        pendingSaleToDelete = null;
+      }
+    });
+  }
+
+  if (btnConfirmDelete && deleteModal) {
+    btnConfirmDelete.addEventListener('click', () => {
+      const sale = pendingSaleToDelete;
+      deleteModal.style.display = 'none';
+      pendingSaleToDelete = null;
+      if (sale) {
+        executeDeleteSale(sale);
+      }
+    });
+  }
 }
 
 // ============================================================================
@@ -6303,9 +6416,11 @@ async function fetchDataFromGoogleSheets(silent = false) {
         updated = true;
       }
 
-      // Update sales from sheet
+      // Update sales from sheet (ignorando vendas que foram expressamente excluídas)
       if (Array.isArray(data.sales)) {
-        appState.sales = sortSalesDescending(data.sales);
+        const deletedIds = new Set(getDeletedSaleIds());
+        const validSales = data.sales.filter(s => s && !deletedIds.has(s.id));
+        appState.sales = sortSalesDescending(validSales);
         localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(appState.sales));
         renderSalesHistory();
         updated = true;
