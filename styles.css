@@ -1083,6 +1083,65 @@ html, body {
   color: #fff;
 }
 
+/* Botão discreto para expandir/ocultar mais informações da venda */
+.toggle-extra-info-wrapper {
+  margin: 12px 0 6px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-toggle-extra-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.btn-toggle-extra-info:hover {
+  background: #e2e8f0;
+  color: #334155;
+  border-color: #94a3b8;
+}
+
+.btn-toggle-extra-info .toggle-extra-chevron {
+  transition: transform 0.25s ease;
+}
+
+.btn-toggle-extra-info.expanded .toggle-extra-chevron {
+  transform: rotate(180deg);
+}
+
+.btn-toggle-extra-info.expanded {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.extra-info-container {
+  animation: fadeInDown 0.25s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Form actions */
 .form-actions-bar {
   margin-top: 18px;

@@ -234,144 +234,157 @@
                 </div>
               </div>
 
-              <!-- 4. Cliente -->
-              <div class="form-row" id="row-cliente">
-                <label for="inputCliente" class="form-label">
-                  Cliente
-                </label>
-                <div class="input-wrapper">
-                  <input type="text" id="inputCliente" name="cliente" class="form-input" placeholder="Ex: Maria Fernandes ou 104">
-                </div>
+              <!-- Botão Discreto: Adicionar Mais Informações (Cliente até CPF/CNPJ) -->
+              <div class="toggle-extra-info-wrapper">
+                <button type="button" id="btnToggleExtraInfo" class="btn-toggle-extra-info" aria-expanded="false" aria-controls="extraInfoFields">
+                  <span id="toggleExtraInfoText">Adicionar Mais Informações</span>
+                  <svg id="toggleExtraChevron" class="toggle-extra-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
               </div>
 
-              <!-- 5. Contato -->
-              <div class="form-row" id="row-contato">
-                <label for="inputContato" class="form-label">
-                  Contato
-                </label>
-                <div class="input-wrapper">
-                  <input type="text" id="inputContato" name="contato" class="form-input" placeholder="Ex: (11) 98765-4321 ou @maria">
-                </div>
-              </div>
-
-              <!-- CEP -->
-              <div class="form-row" id="row-cep">
-                <label for="inputCEP" class="form-label">
-                  CEP
-                </label>
-                <div class="input-wrapper">
-                  <input type="tel" id="inputCEP" name="cep" class="form-input" placeholder="Ex: 01001-000" oninput="window.formatAndSearchCEP(this)" maxlength="9">
-                </div>
-              </div>
-
-              <!-- 6. Endereço -->
-              <div class="form-row" id="row-endereco">
-                <label for="inputEndereco" class="form-label">
-                  Endereço
-                </label>
-                <div class="input-wrapper">
-                  <textarea id="inputEndereco" name="endereco" class="form-input" placeholder="Ex: Rua das Flores, 123 - Apto 4" rows="2" style="resize: none;"></textarea>
-                </div>
-              </div>
-
-              <!-- 7. Frete -->
-              <div class="form-row" id="row-frete">
-                <label for="inputFrete" class="form-label">
-                  Frete
-                </label>
-                <div class="input-wrapper">
-                  <div class="prefix-input">
-                    <span class="currency-prefix">R$</span>
-                    <input type="tel" id="inputFrete" name="frete" class="form-input" placeholder="0,00" oninput="formatCurrencyInput(this)">
+              <!-- CAMPOS SECUNDÁRIOS OCULTOS POR PADRÃO (Cliente até CPF/CNPJ) -->
+              <div id="extraInfoFields" class="extra-info-container" style="display: none;">
+                <!-- 4. Cliente -->
+                <div class="form-row" id="row-cliente">
+                  <label for="inputCliente" class="form-label">
+                    Cliente
+                  </label>
+                  <div class="input-wrapper">
+                    <input type="text" id="inputCliente" name="cliente" class="form-input" placeholder="Ex: Maria Fernandes ou 104">
                   </div>
                 </div>
-              </div>
 
-              <!-- 8. Pagamento -->
-              <div class="form-row" id="row-pagamento">
-                <label for="inputPagamento" class="form-label">
-                  Pagamento
-                </label>
-                <div class="input-wrapper" style="display: flex; gap: 8px;">
-                  <input type="text" id="inputPagamento" name="pagamento" class="form-input" placeholder="Ex: Pix, Cartão, Dinheiro" list="pagamentosDatalist" oninput="if(this.value.toLowerCase().includes('crédito')) { document.getElementById('inputParcelas').style.display = 'block'; } else { document.getElementById('inputParcelas').style.display = 'none'; document.getElementById('inputParcelas').value = ''; }">
-                  <datalist id="pagamentosDatalist">
-                    <option value="Pix">
-                    <option value="Cartão de Crédito">
-                    <option value="Cartão de Débito">
-                    <option value="Dinheiro">
-                    <option value="Boleto Bancário">
-                    <option value="Transferência">
-                  </datalist>
-                  <input type="text" id="inputParcelas" name="parcelas" class="form-input" placeholder="Parcelas (ex: 3x)" style="display: none; width: 120px;">
-                </div>
-              </div>
-
-              <!-- Total -->
-              <div class="form-row" id="row-total">
-                <label for="inputTotal" class="form-label">
-                  Total
-                </label>
-                <div class="input-wrapper">
-                  <div class="prefix-input">
-                    <span class="currency-prefix">R$</span>
-                    <input type="tel" id="inputTotal" name="total" class="form-input" placeholder="0,00" oninput="formatCurrencyInput(this)">
+                <!-- 5. Contato -->
+                <div class="form-row" id="row-contato">
+                  <label for="inputContato" class="form-label">
+                    Contato
+                  </label>
+                  <div class="input-wrapper">
+                    <input type="text" id="inputContato" name="contato" class="form-input" placeholder="Ex: (11) 98765-4321 ou @maria">
                   </div>
                 </div>
-              </div>
 
-              <!-- Data da Entrega -->
-              <div class="form-row" id="row-data-entrega">
-                <label for="inputDataEntrega" class="form-label">
-                  Data da Entrega
-                </label>
-                <div class="input-wrapper">
-                  <input type="date" id="inputDataEntrega" name="data_entrega" class="form-input">
-                </div>
-              </div>
-
-              <!-- 9. Observação -->
-              <div class="form-row" id="row-observacao">
-                <label for="inputObservacao" class="form-label">
-                  Observação
-                </label>
-                <div class="input-wrapper">
-                  <input type="text" id="inputObservacao" name="observacao" class="form-input" placeholder="Ex: Entregar à tarde, embalar para presente">
-                </div>
-              </div>
-
-              <!-- 10. Comissão -->
-              <div class="form-row" id="row-comissao">
-                <label for="inputComissao" class="form-label">
-                  Comissão
-                </label>
-                <div class="input-wrapper">
-                  <div class="prefix-input">
-                    <span class="currency-prefix">R$</span>
-                    <input type="tel" id="inputComissao" name="comissao" class="form-input" placeholder="0,00" oninput="formatCurrencyInput(this)">
+                <!-- CEP -->
+                <div class="form-row" id="row-cep">
+                  <label for="inputCEP" class="form-label">
+                    CEP
+                  </label>
+                  <div class="input-wrapper">
+                    <input type="tel" id="inputCEP" name="cep" class="form-input" placeholder="Ex: 01001-000" oninput="window.formatAndSearchCEP(this)" maxlength="9">
                   </div>
                 </div>
-              </div>
 
-              <!-- 11. Lucro -->
-              <div class="form-row" id="row-lucro">
-                <label for="inputLucro" class="form-label">
-                  Lucro
-                </label>
-                <div class="input-wrapper">
-                  <div class="prefix-input">
-                    <span class="currency-prefix">R$</span>
-                    <input type="text" id="inputLucro" name="lucro" class="form-input" placeholder="0,00" readonly>
+                <!-- 6. Endereço -->
+                <div class="form-row" id="row-endereco">
+                  <label for="inputEndereco" class="form-label">
+                    Endereço
+                  </label>
+                  <div class="input-wrapper">
+                    <textarea id="inputEndereco" name="endereco" class="form-input" placeholder="Ex: Rua das Flores, 123 - Apto 4" rows="2" style="resize: none;"></textarea>
                   </div>
                 </div>
-              </div>
 
-              <!-- CPF/CNPJ do Cliente (Sempre visível) -->
-              <div class="form-row" id="row-documento">
-                <label for="inputDocumento" class="form-label">
-                  CPF/CNPJ
-                </label>
-                <div class="input-wrapper">
-                  <input type="text" id="inputDocumento" name="documento" class="form-input" placeholder="000.000.000-00 ou CNPJ" maxlength="18">
+                <!-- 7. Frete -->
+                <div class="form-row" id="row-frete">
+                  <label for="inputFrete" class="form-label">
+                    Frete
+                  </label>
+                  <div class="input-wrapper">
+                    <div class="prefix-input">
+                      <span class="currency-prefix">R$</span>
+                      <input type="tel" id="inputFrete" name="frete" class="form-input" placeholder="0,00" oninput="formatCurrencyInput(this)">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 8. Pagamento -->
+                <div class="form-row" id="row-pagamento">
+                  <label for="inputPagamento" class="form-label">
+                    Pagamento
+                  </label>
+                  <div class="input-wrapper" style="display: flex; gap: 8px;">
+                    <input type="text" id="inputPagamento" name="pagamento" class="form-input" placeholder="Ex: Pix, Cartão, Dinheiro" list="pagamentosDatalist" oninput="if(this.value.toLowerCase().includes('crédito')) { document.getElementById('inputParcelas').style.display = 'block'; } else { document.getElementById('inputParcelas').style.display = 'none'; document.getElementById('inputParcelas').value = ''; }">
+                    <datalist id="pagamentosDatalist">
+                      <option value="Pix">
+                      <option value="Cartão de Crédito">
+                      <option value="Cartão de Débito">
+                      <option value="Dinheiro">
+                      <option value="Boleto Bancário">
+                      <option value="Transferência">
+                    </datalist>
+                    <input type="text" id="inputParcelas" name="parcelas" class="form-input" placeholder="Parcelas (ex: 3x)" style="display: none; width: 120px;">
+                  </div>
+                </div>
+
+                <!-- Total -->
+                <div class="form-row" id="row-total">
+                  <label for="inputTotal" class="form-label">
+                    Total
+                  </label>
+                  <div class="input-wrapper">
+                    <div class="prefix-input">
+                      <span class="currency-prefix">R$</span>
+                      <input type="tel" id="inputTotal" name="total" class="form-input" placeholder="0,00" oninput="formatCurrencyInput(this)">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Data da Entrega -->
+                <div class="form-row" id="row-data-entrega">
+                  <label for="inputDataEntrega" class="form-label">
+                    Data da Entrega
+                  </label>
+                  <div class="input-wrapper">
+                    <input type="date" id="inputDataEntrega" name="data_entrega" class="form-input">
+                  </div>
+                </div>
+
+                <!-- 9. Observação -->
+                <div class="form-row" id="row-observacao">
+                  <label for="inputObservacao" class="form-label">
+                    Observação
+                  </label>
+                  <div class="input-wrapper">
+                    <input type="text" id="inputObservacao" name="observacao" class="form-input" placeholder="Ex: Entregar à tarde, embalar para presente">
+                  </div>
+                </div>
+
+                <!-- 10. Comissão -->
+                <div class="form-row" id="row-comissao">
+                  <label for="inputComissao" class="form-label">
+                    Comissão
+                  </label>
+                  <div class="input-wrapper">
+                    <div class="prefix-input">
+                      <span class="currency-prefix">R$</span>
+                      <input type="tel" id="inputComissao" name="comissao" class="form-input" placeholder="0,00" oninput="formatCurrencyInput(this)">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 11. Lucro -->
+                <div class="form-row" id="row-lucro">
+                  <label for="inputLucro" class="form-label">
+                    Lucro
+                  </label>
+                  <div class="input-wrapper">
+                    <div class="prefix-input">
+                      <span class="currency-prefix">R$</span>
+                      <input type="text" id="inputLucro" name="lucro" class="form-input" placeholder="0,00" readonly>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- CPF/CNPJ do Cliente -->
+                <div class="form-row" id="row-documento">
+                  <label for="inputDocumento" class="form-label">
+                    CPF/CNPJ
+                  </label>
+                  <div class="input-wrapper">
+                    <input type="text" id="inputDocumento" name="documento" class="form-input" placeholder="000.000.000-00 ou CNPJ" maxlength="18">
+                  </div>
                 </div>
               </div>
 
@@ -381,7 +394,7 @@
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path d="M20 6L9 17l-5-5"/>
                   </svg>
-                  Salvar Registro de Venda
+                  Salvar Venda
                 </button>
 
                 <button type="button" class="btn-secondary-whatsapp" id="btnApenasWhatsapp">

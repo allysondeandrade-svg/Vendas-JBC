@@ -2776,6 +2776,19 @@ function parseSaleDateToTimestamp(item) {
       if (!isNaN(d.getTime())) return d.getTime();
     }
 
+    // 1b. Caso seja formato brasileiro reduzido DD/MM ou DD/MM HH:mm (assume ano corrente)
+    const brShortMatch = rawDate.match(/^(\d{1,2})\/(\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+    if (brShortMatch) {
+      const day = parseInt(brShortMatch[1], 10);
+      const month = parseInt(brShortMatch[2], 10) - 1;
+      const year = new Date().getFullYear();
+      const hour = brShortMatch[3] ? parseInt(brShortMatch[3], 10) : 12;
+      const min = brShortMatch[4] ? parseInt(brShortMatch[4], 10) : 0;
+      const sec = brShortMatch[5] ? parseInt(brShortMatch[5], 10) : 0;
+      const d = new Date(year, month, day, hour, min, sec);
+      if (!isNaN(d.getTime())) return d.getTime();
+    }
+
     // 2. Limpeza de timezone brasileira textual como "GMT-0300 (Horário Padrão de Brasília)"
     const cleanTz = rawDate.replace(/\s*\([^\)]*\)/g, '').trim();
     const parsedCleanTz = Date.parse(cleanTz);
@@ -2794,7 +2807,13 @@ function parseSaleDateToTimestamp(item) {
 
 function sortSalesDescending(salesList) {
   if (!Array.isArray(salesList)) return [];
-  return salesList.slice().sort((a, b) => parseSaleDateToTimestamp(b) - parseSaleDateToTimestamp(a));
+  return salesList.slice().map(s => {
+    if (!s.timestamp || isNaN(s.timestamp) || s.timestamp <= 0) {
+      const ts = parseSaleDateToTimestamp(s);
+      if (ts > 0) s.timestamp = ts;
+    }
+    return s;
+  }).sort((a, b) => parseSaleDateToTimestamp(b) - parseSaleDateToTimestamp(a));
 }
 
 function loadDataFromStorage() {
@@ -3604,7 +3623,15 @@ function handleSalesFormSubmit(e) {
       appState.sales[idx] = newSale;
     }
     appState.editingSaleId = null;
-    document.getElementById('btnSubmitForm').textContent = 'Registrar Venda 🚀';
+    const submitBtn = document.getElementById('btnSalvarVenda') || document.getElementById('btnSubmitForm');
+    if (submitBtn) {
+      submitBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M20 6L9 17l-5-5"/>
+        </svg>
+        Salvar Venda
+      `;
+    }
     showToast('✨ Venda editada com sucesso!', 'success');
 
     if (appState.config.googleSheetUrl && appState.config.autoSyncSheet) {
@@ -3624,9 +3651,18 @@ function handleSalesFormSubmit(e) {
   saveSalesToStorage();
   SoundEffects.playSuccess();
 
-  setTimeout(() => {
-    openWhatsappShareModal(newSale);
-  }, 450);
+  // Fecha os campos extras e reseta o formulário mantendo foco ágil
+  const extraFields = document.getElementById('extraInfoFields');
+  const toggleBtn = document.getElementById('btnToggleExtraInfo');
+  if (extraFields && extraFields.style.display !== 'none') {
+    extraFields.style.display = 'none';
+    if (toggleBtn) {
+      toggleBtn.classList.remove('expanded');
+      toggleBtn.setAttribute('aria-expanded', 'false');
+      const textSpan = document.getElementById('toggleExtraInfoText');
+      if (textSpan) textSpan.textContent = 'Adicionar Mais Informações';
+    }
+  }
 }
 
 // ============================================================================
@@ -5560,6 +5596,23 @@ function setupEventListeners() {
   // Sales Form Events
   DOM.salesForm.addEventListener('submit', handleSalesFormSubmit);
   DOM.btnClearForm.addEventListener('click', clearSalesForm);
+
+  // Botão discreto: Adicionar Mais Informações (Cliente até CPF/CNPJ)
+  const btnToggleExtraInfo = document.getElementById('btnToggleExtraInfo');
+  const extraInfoFields = document.getElementById('extraInfoFields');
+  const toggleExtraInfoText = document.getElementById('toggleExtraInfoText');
+  if (btnToggleExtraInfo && extraInfoFields) {
+    btnToggleExtraInfo.addEventListener('click', () => {
+      const isHidden = extraInfoFields.style.display === 'none' || !extraInfoFields.style.display;
+      extraInfoFields.style.display = isHidden ? 'block' : 'none';
+      btnToggleExtraInfo.classList.toggle('expanded', isHidden);
+      btnToggleExtraInfo.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+      if (toggleExtraInfoText) {
+        toggleExtraInfoText.textContent = isHidden ? 'Ocultar Informações' : 'Adicionar Mais Informações';
+      }
+      SoundEffects.playPop();
+    });
+  }
   
   const btnAddProductRow = document.getElementById('btnAddProductRow');
   if (btnAddProductRow) {
@@ -5651,10 +5704,11 @@ function setupEventListeners() {
   // History Date Presets
   document.querySelectorAll('.date-preset-pill').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      const targetBtn = e.currentTarget;
       document.querySelectorAll('.date-preset-pill').forEach(b => b.classList.remove('active'));
-      e.target.classList.add('active');
+      targetBtn.classList.add('active');
 
-      const range = e.target.getAttribute('data-range');
+      const range = targetBtn.getAttribute('data-range');
       appState.historyFilter.dateRangeMode = range;
 
       if (range === 'custom') {
