@@ -2413,9 +2413,11 @@ let appState = {
 
   // History filtering state
   historyFilter: {
-    dateRangeMode: 'all', // 'all', 'today', 'week', 'month', 'custom'
+    dateRangeMode: 'all', // 'all', 'today', 'week', 'month', 'select-month', 'custom'
     dateStart: '',
     dateEnd: '',
+    selectedMonth: '', // 0..11
+    selectedYear: '',
     seller: 'all',
     searchQuery: ''
   }
@@ -2545,6 +2547,10 @@ const DOM = {
   periodActiveBadge: document.getElementById('periodActiveBadge'),
   btnExportHistoryCSV: document.getElementById('btnExportHistoryCSV'),
   customDateContainer: document.getElementById('customDateContainer'),
+  monthSelectContainer: document.getElementById('monthSelectContainer'),
+  filterSelectMonth: document.getElementById('filterSelectMonth'),
+  filterSelectYear: document.getElementById('filterSelectYear'),
+  btnClearMonthFilter: document.getElementById('btnClearMonthFilter'),
   filterDateStart: document.getElementById('filterDateStart'),
   filterDateEnd: document.getElementById('filterDateEnd'),
   btnApplyDateFilter: document.getElementById('btnApplyDateFilter'),
@@ -2600,6 +2606,7 @@ const DOM = {
   productFormTitle: document.getElementById('productFormTitle'),
   productForm: document.getElementById('productForm'),
   editProductId: document.getElementById('editProductId'),
+  prodSku: document.getElementById('prodSku'),
   prodName: document.getElementById('prodName'),
   prodPrice: document.getElementById('prodPrice'),
   prodCost: document.getElementById('prodCost'),
@@ -2755,7 +2762,7 @@ function parseSaleDateToTimestamp(item) {
   
   const rawDate = String(item.dateString || item.data_entrega || '').trim();
   if (rawDate) {
-    // Caso seja formato brasileiro DD/MM/AAAA ou DD/MM/AAAA HH:mm:ss
+    // 1. Caso seja formato brasileiro DD/MM/AAAA ou DD/MM/AAAA HH:mm:ss
     const brMatch = rawDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
     if (brMatch) {
       const day = parseInt(brMatch[1], 10);
@@ -2769,7 +2776,14 @@ function parseSaleDateToTimestamp(item) {
       if (!isNaN(d.getTime())) return d.getTime();
     }
 
-    // Caso seja formato ISO YYYY-MM-DD ou Date string padrão
+    // 2. Limpeza de timezone brasileira textual como "GMT-0300 (Horário Padrão de Brasília)"
+    const cleanTz = rawDate.replace(/\s*\([^\)]*\)/g, '').trim();
+    const parsedCleanTz = Date.parse(cleanTz);
+    if (!isNaN(parsedCleanTz) && parsedCleanTz > 0) {
+      return parsedCleanTz;
+    }
+
+    // 3. Caso seja formato ISO YYYY-MM-DD ou Date string padrão
     const isoParsed = Date.parse(rawDate);
     if (!isNaN(isoParsed) && isoParsed > 0) {
       return isoParsed;
@@ -3388,14 +3402,17 @@ function getActiveProductsFromDOM() {
     const matched = findProductMatch(produto);
     let basePrice = preco;
     let cost = 0;
+    let sku = '';
     if (matched) {
       basePrice = parsePriceNumber(matched.basePrice !== undefined && matched.basePrice !== '' ? matched.basePrice : matched.price);
       cost = parsePriceNumber(matched.cost || '0');
+      sku = matched.sku || '';
     }
 
     if (produto) {
       items.push({
         produto,
+        sku: sku,
         preco,
         quantidade: 1,
         subtotal: preco,
@@ -3616,6 +3633,36 @@ function handleSalesFormSubmit(e) {
 // VENDAS -> HISTÓRICO: FILTRO DE DATA, RESULTADO POR VENDEDOR & EXPORTAÇÃO
 // ============================================================================
 
+// Nomes dos meses em português
+const MONTH_NAMES_PTBR = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
+function populateMonthFilterYears() {
+  if (!DOM.filterSelectYear) return;
+  const currentYear = new Date().getFullYear();
+  const years = new Set([currentYear, currentYear - 1, currentYear + 1]);
+
+  // Extrai anos presentes nas vendas registradas
+  if (Array.isArray(appState.sales)) {
+    appState.sales.forEach(s => {
+      const ts = parseSaleDateToTimestamp(s);
+      if (ts > 0) {
+        const y = new Date(ts).getFullYear();
+        if (y >= 2020 && y <= 2040) years.add(y);
+      }
+    });
+  }
+
+  const sortedYears = Array.from(years).sort((a, b) => b - a);
+  const selectedYear = appState.historyFilter.selectedYear || String(currentYear);
+  
+  DOM.filterSelectYear.innerHTML = sortedYears.map(y => `
+    <option value="${y}" ${String(y) === selectedYear ? 'selected' : ''}>${y}</option>
+  `).join('');
+}
+
 // Returns filtered sales based on active date range, seller, and search text
 function getFilteredSales() {
   const query = (DOM.historySearchInput ? DOM.historySearchInput.value : '').toLowerCase().trim();
@@ -3623,10 +3670,11 @@ function getFilteredSales() {
   const mode = appState.historyFilter.dateRangeMode;
 
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const todayEnd = todayStart + 86400000;
-  const sevenDaysAgo = todayStart - 86400000 * 6;
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
+  const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0).getTime();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).getTime();
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
 
   let startTs = 0;
   let endTs = Infinity;
@@ -3639,20 +3687,41 @@ function getFilteredSales() {
     endTs = todayEnd;
   } else if (mode === 'month') {
     startTs = monthStart;
-    endTs = todayEnd;
+    endTs = monthEnd;
+  } else if (mode === 'select-month') {
+    const m = (appState.historyFilter.selectedMonth !== '' && appState.historyFilter.selectedMonth !== null && appState.historyFilter.selectedMonth !== undefined)
+      ? parseInt(appState.historyFilter.selectedMonth, 10)
+      : now.getMonth();
+    const y = appState.historyFilter.selectedYear
+      ? parseInt(appState.historyFilter.selectedYear, 10)
+      : now.getFullYear();
+
+    startTs = new Date(y, m, 1, 0, 0, 0, 0).getTime();
+    endTs = new Date(y, m + 1, 0, 23, 59, 59, 999).getTime();
   } else if (mode === 'custom') {
     if (appState.historyFilter.dateStart) {
-      startTs = new Date(appState.historyFilter.dateStart + 'T00:00:00').getTime();
+      const partsStart = appState.historyFilter.dateStart.split('-');
+      if (partsStart.length === 3) {
+        startTs = new Date(parseInt(partsStart[0], 10), parseInt(partsStart[1], 10) - 1, parseInt(partsStart[2], 10), 0, 0, 0, 0).getTime();
+      } else {
+        startTs = new Date(appState.historyFilter.dateStart + 'T00:00:00').getTime();
+      }
     }
     if (appState.historyFilter.dateEnd) {
-      endTs = new Date(appState.historyFilter.dateEnd + 'T23:59:59').getTime();
+      const partsEnd = appState.historyFilter.dateEnd.split('-');
+      if (partsEnd.length === 3) {
+        endTs = new Date(parseInt(partsEnd[0], 10), parseInt(partsEnd[1], 10) - 1, parseInt(partsEnd[2], 10), 23, 59, 59, 999).getTime();
+      } else {
+        endTs = new Date(appState.historyFilter.dateEnd + 'T23:59:59').getTime();
+      }
     }
   }
 
   return appState.sales.filter(sale => {
-    // 1. Date filter
-    const ts = sale.timestamp || 0;
-    if (ts < startTs || ts > endTs) return false;
+    // 1. Date filter (com fallback robusto usando parseSaleDateToTimestamp)
+    const ts = parseSaleDateToTimestamp(sale);
+    if (startTs > 0 && ts < startTs) return false;
+    if (endTs < Infinity && ts > endTs) return false;
 
     // 2. Seller filter
     if (selectedSeller !== 'all') {
@@ -3685,14 +3754,22 @@ function renderSalesHistory() {
   // Update Period active badge
   if (DOM.periodActiveBadge) {
     const mode = appState.historyFilter.dateRangeMode;
-    const modeLabels = {
-      all: 'Todo o Período',
-      today: 'Hoje',
-      week: 'Últimos 7 Dias',
-      month: 'Este Mês',
-      custom: 'Período Personalizado'
-    };
-    DOM.periodActiveBadge.textContent = modeLabels[mode] || 'Filtrado';
+    let label = 'Todo o Período';
+    if (mode === 'today') {
+      label = 'Hoje';
+    } else if (mode === 'week') {
+      label = 'Últimos 7 Dias';
+    } else if (mode === 'month') {
+      label = 'Este Mês';
+    } else if (mode === 'select-month') {
+      const mIdx = parseInt(appState.historyFilter.selectedMonth, 10);
+      const mName = !isNaN(mIdx) && MONTH_NAMES_PTBR[mIdx] ? MONTH_NAMES_PTBR[mIdx] : 'Mês';
+      const yVal = appState.historyFilter.selectedYear || new Date().getFullYear();
+      label = `${mName}/${yVal}`;
+    } else if (mode === 'custom') {
+      label = 'Período Personalizado';
+    }
+    DOM.periodActiveBadge.textContent = label;
   }
 
   // Update Counters & KPIs
@@ -4038,12 +4115,16 @@ window.onClearHistoryFilters = function() {
   appState.historyFilter.dateRangeMode = 'all';
   appState.historyFilter.dateStart = '';
   appState.historyFilter.dateEnd = '';
+  appState.historyFilter.selectedMonth = '';
+  appState.historyFilter.selectedYear = '';
   appState.historyFilter.seller = 'all';
   if (DOM.historySearchInput) DOM.historySearchInput.value = '';
   if (DOM.filterSellerSelect) DOM.filterSellerSelect.value = 'all';
   if (DOM.filterDateStart) DOM.filterDateStart.value = '';
   if (DOM.filterDateEnd) DOM.filterDateEnd.value = '';
+  if (DOM.filterSelectMonth) DOM.filterSelectMonth.value = '';
   if (DOM.customDateContainer) DOM.customDateContainer.style.display = 'none';
+  if (DOM.monthSelectContainer) DOM.monthSelectContainer.style.display = 'none';
 
   // Reset preset pills
   document.querySelectorAll('.date-preset-pill').forEach(btn => {
@@ -4806,6 +4887,7 @@ window.onEditProduct = function(prodId) {
   if (!prod) return;
 
   DOM.editProductId.value = prod.id;
+  if (DOM.prodSku) DOM.prodSku.value = prod.sku || '';
   DOM.prodName.value = prod.name;
   DOM.prodPrice.value = prod.price;
   DOM.prodCost.value = prod.cost || '';
@@ -4819,18 +4901,46 @@ window.onEditProduct = function(prodId) {
   SoundEffects.playPop();
 };
 
-window.onDeleteProduct = function(prodId) {
-  if (confirm('Tem certeza que deseja excluir este produto do catálogo?')) {
+window.onDeleteProduct = async function(prodId) {
+  const prod = appState.products.find(p => p.id === prodId);
+  if (!prod) return;
+
+  if (confirm(`Tem certeza que deseja excluir "${prod.name}" do catálogo e da planilha?`)) {
     appState.products = appState.products.filter(p => p.id !== prodId);
-    saveProductsToStorage();
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(appState.products));
+    renderProductsDatalist();
+    renderProductsList();
+    updateDatabaseMetrics();
     showToast('Produto excluído do catálogo.', 'info');
     SoundEffects.playPop();
+
+    // Sincroniza exclusão diretamente com o Google Sheets
+    if (appState.config.googleSheetUrl && appState.config.autoSyncSheet) {
+      try {
+        updateGoogleSheetStatusUI('syncing', 'Excluindo na planilha...');
+        const res = await fetch(appState.config.googleSheetUrl, {
+          method: 'POST',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'deleteProduct', data: { id: prod.id, sku: prod.sku } })
+        });
+        const result = await res.json();
+        if (result && result.status === 'success') {
+          updateGoogleSheetStatusUI('connected');
+          showToast('☁️ Produto excluído da Planilha Google!', 'success');
+        }
+      } catch (err) {
+        console.warn('Erro ao excluir produto do Google Sheets:', err);
+        updateGoogleSheetStatusUI('connected');
+      }
+    }
   }
 };
 
 function handleProductFormSubmit(e) {
   e.preventDefault();
   const id = DOM.editProductId.value.trim();
+  const sku = DOM.prodSku ? DOM.prodSku.value.trim() : '';
   const name = DOM.prodName.value.trim();
   const price = DOM.prodPrice.value.trim();
   const cost = DOM.prodCost.value.trim();
@@ -4843,15 +4953,28 @@ function handleProductFormSubmit(e) {
     return;
   }
 
+  let savedProd = null;
+
   if (id) {
     const index = appState.products.findIndex(p => p.id === id);
     if (index !== -1) {
-      appState.products[index] = { ...appState.products[index], name, price, cost, basePrice, stock, category };
+      savedProd = { 
+        ...appState.products[index], 
+        sku: sku || appState.products[index].sku || '',
+        name, 
+        price, 
+        cost, 
+        basePrice, 
+        stock, 
+        category 
+      };
+      appState.products[index] = savedProd;
       showToast('Produto atualizado com sucesso!', 'success');
     }
   } else {
-    const newProd = {
-      id: 'prod-' + Date.now(),
+    savedProd = {
+      id: sku || ('prod-' + Date.now()),
+      sku: sku,
       name,
       price,
       cost,
@@ -4859,18 +4982,41 @@ function handleProductFormSubmit(e) {
       stock,
       category
     };
-    appState.products.unshift(newProd);
+    appState.products.unshift(savedProd);
     showToast('Produto cadastrado com sucesso!', 'success');
   }
 
   saveProductsToStorage();
   resetProductForm();
   SoundEffects.playSuccess();
+
+  // Sincroniza upsert individual na planilha para atualizar em tempo real
+  if (savedProd && appState.config.googleSheetUrl && appState.config.autoSyncSheet) {
+    fetch(appState.config.googleSheetUrl, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'saveProduct',
+        data: {
+          id: savedProd.id,
+          sku: savedProd.sku,
+          product: savedProd.name,
+          cost: savedProd.cost,
+          price: savedProd.price,
+          basePrice: savedProd.basePrice,
+          category: savedProd.category,
+          stock: savedProd.stock
+        }
+      })
+    }).catch(err => console.warn('Erro ao salvar produto individual:', err));
+  }
 }
 
 function resetProductForm() {
   DOM.productForm.reset();
   DOM.editProductId.value = '';
+  if (DOM.prodSku) DOM.prodSku.value = '';
   DOM.productFormTitle.textContent = 'Cadastrar Novo Produto';
   DOM.newProductCard.style.display = 'none';
 }
@@ -5512,14 +5658,55 @@ function setupEventListeners() {
       appState.historyFilter.dateRangeMode = range;
 
       if (range === 'custom') {
-        DOM.customDateContainer.style.display = 'flex';
+        if (DOM.customDateContainer) DOM.customDateContainer.style.display = 'flex';
+        if (DOM.monthSelectContainer) DOM.monthSelectContainer.style.display = 'none';
+      } else if (range === 'select-month') {
+        if (DOM.monthSelectContainer) DOM.monthSelectContainer.style.display = 'flex';
+        if (DOM.customDateContainer) DOM.customDateContainer.style.display = 'none';
+        populateMonthFilterYears();
+        if (DOM.filterSelectMonth && (appState.historyFilter.selectedMonth === '' || appState.historyFilter.selectedMonth === null)) {
+          const curM = String(new Date().getMonth());
+          DOM.filterSelectMonth.value = curM;
+          appState.historyFilter.selectedMonth = curM;
+        }
+        if (DOM.filterSelectYear && !appState.historyFilter.selectedYear) {
+          appState.historyFilter.selectedYear = String(new Date().getFullYear());
+          DOM.filterSelectYear.value = appState.historyFilter.selectedYear;
+        }
+        renderSalesHistory();
       } else {
-        DOM.customDateContainer.style.display = 'none';
+        if (DOM.customDateContainer) DOM.customDateContainer.style.display = 'none';
+        if (DOM.monthSelectContainer) DOM.monthSelectContainer.style.display = 'none';
         renderSalesHistory();
       }
       SoundEffects.playPop();
     });
   });
+
+  if (DOM.filterSelectMonth) {
+    DOM.filterSelectMonth.addEventListener('change', (e) => {
+      appState.historyFilter.selectedMonth = e.target.value;
+      renderSalesHistory();
+      SoundEffects.playPop();
+    });
+  }
+
+  if (DOM.filterSelectYear) {
+    DOM.filterSelectYear.addEventListener('change', (e) => {
+      appState.historyFilter.selectedYear = e.target.value;
+      renderSalesHistory();
+      SoundEffects.playPop();
+    });
+  }
+
+  if (DOM.btnClearMonthFilter) {
+    DOM.btnClearMonthFilter.addEventListener('click', () => {
+      if (DOM.filterSelectMonth) DOM.filterSelectMonth.value = '';
+      appState.historyFilter.selectedMonth = '';
+      renderSalesHistory();
+      SoundEffects.playPop();
+    });
+  }
 
   DOM.btnApplyDateFilter.addEventListener('click', () => {
     appState.historyFilter.dateStart = DOM.filterDateStart.value;
@@ -5974,7 +6161,34 @@ async function fetchDataFromGoogleSheets(silent = false) {
 
       // Update products from sheet
       if (Array.isArray(data.products)) {
-        appState.products = data.products;
+        appState.products = data.products.map(p => {
+          const nomeProd = p.product || p.name || p.title || p.descricao || '';
+          const skuProd = p.sku || p.id || '';
+          const precoVenda = p.price !== undefined && p.price !== null && p.price !== '' 
+            ? String(p.price) 
+            : (p.basePrice !== undefined && p.basePrice !== null && p.basePrice !== '' 
+              ? String(p.basePrice) 
+              : (p.cost !== undefined && p.cost !== null && p.cost !== '' ? String(p.cost) : '0,00'));
+          const precoBase = p.basePrice !== undefined && p.basePrice !== null && p.basePrice !== '' 
+            ? String(p.basePrice) 
+            : precoVenda;
+          const custoProd = p.cost !== undefined && p.cost !== null ? String(p.cost) : '';
+          const categoriaProd = p.category || 'Geral';
+          const estoqueProd = (p.stock !== undefined && p.stock !== null) ? p.stock : (p.estoque !== undefined ? p.estoque : '');
+
+          return {
+            id: p.id || skuProd || ('prod-' + Math.random().toString(36).substr(2, 9)),
+            sku: skuProd,
+            name: nomeProd,
+            product: nomeProd,
+            price: precoVenda,
+            basePrice: precoBase,
+            cost: custoProd,
+            stock: estoqueProd,
+            category: categoriaProd,
+            imageUrl: p.imageUrl || p.foto || ''
+          };
+        });
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(appState.products));
         renderProductsDatalist();
         renderProductsList();

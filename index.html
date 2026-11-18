@@ -426,7 +426,37 @@
                 <button type="button" class="date-preset-pill" data-range="today">Hoje</button>
                 <button type="button" class="date-preset-pill" data-range="week">7 Dias</button>
                 <button type="button" class="date-preset-pill" data-range="month">Este Mês</button>
+                <button type="button" class="date-preset-pill" data-range="select-month">Por Mês</button>
                 <button type="button" class="date-preset-pill" data-range="custom">Personalizado</button>
+              </div>
+
+              <!-- Month Selection Row (hidden by default) -->
+              <div class="custom-date-row month-select-row" id="monthSelectContainer" style="display: none;">
+                <div class="date-input-group">
+                  <label for="filterSelectMonth">Mês:</label>
+                  <select id="filterSelectMonth" class="date-picker-input">
+                    <option value="">Selecione o Mês</option>
+                    <option value="0">Janeiro</option>
+                    <option value="1">Fevereiro</option>
+                    <option value="2">Março</option>
+                    <option value="3">Abril</option>
+                    <option value="4">Maio</option>
+                    <option value="5">Junho</option>
+                    <option value="6">Julho</option>
+                    <option value="7">Agosto</option>
+                    <option value="8">Setembro</option>
+                    <option value="9">Outubro</option>
+                    <option value="10">Novembro</option>
+                    <option value="11">Dezembro</option>
+                  </select>
+                </div>
+                <div class="date-input-group" style="max-width: 110px;">
+                  <label for="filterSelectYear">Ano:</label>
+                  <select id="filterSelectYear" class="date-picker-input">
+                    <!-- Populated dynamically -->
+                  </select>
+                </div>
+                <button type="button" class="btn-clear-date" id="btnClearMonthFilter" title="Limpar filtro de mês">&times;</button>
               </div>
 
               <!-- Custom Date Range (hidden by default) -->
@@ -543,9 +573,15 @@
               <form id="productForm">
                 <input type="hidden" id="editProductId" value="">
                 
-                <div class="input-group">
-                  <label for="prodName">Nome do Produto*</label>
-                  <input type="text" id="prodName" required placeholder="Ex: Fone Bluetooth Pro Max">
+                <div class="grid-2-inputs">
+                  <div class="input-group">
+                    <label for="prodSku">SKU / Código</label>
+                    <input type="text" id="prodSku" placeholder="Ex: FOG-02-BOC">
+                  </div>
+                  <div class="input-group">
+                    <label for="prodName">Nome do Produto*</label>
+                    <input type="text" id="prodName" required placeholder="Ex: Fogão 2 Bocas Alta Pressão Inox">
+                  </div>
                 </div>
 
                 <div class="grid-2-inputs">
@@ -1209,17 +1245,32 @@ Tênis Esportivo	189,00	80,00	130,00	Calçados"></textarea>
           <div class="apps-script-code-container">
             <button type="button" class="btn-copy-code" id="btnCopyScriptCode">📋 Copiar Código</button>
             <pre class="apps-script-code-pre" id="appsScriptCodePre">/**
- * GOOGLE APPS SCRIPT - API BANCO DE DADOS 24H
- * Registro de Vendas & Catálogo de Produtos
+ * ============================================================================
+ * VENDAS JBC - BACKEND GOOGLE APPS SCRIPT
+ * ============================================================================
+ * Sincronização 24h de Vendas e Catálogo de Produtos.
+ * Abas utilizadas na Planilha:
+ * - "V" (antiga Vendas): [Data/Hora, Vendedor, SKU, Produto, Preço (R$), Cliente, Contato, Endereço, Frete, Pagamento, Observação, Comissão (R$), Lucro (R$), ID Venda]
+ * - "Produtos": [SKU, Produto, Preço Venda (R$), Custo (R$), Preço Base (R$), Categoria, Estoque, ID]
  */
+
+const SHEET_NAMES = {
+  SALES: "V", // Nome da aba de vendas
+  PRODUCTS: "Produtos"
+};
+
 function doGet(e) {
-  var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : "getAll";
-  if (action === "ping") {
-    return createJsonResponse({ status: "success", message: "Conexão ativa 24h!" });
+  try {
+    var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : "getAll";
+    if (action === "ping") {
+      return createJsonResponse({ status: "success", message: "Conexão ativa 24h com Vendas JBC!" });
+    }
+    var prods = readProductsFromSheet();
+    var sales = readSalesFromSheet();
+    return createJsonResponse({ status: "success", products: prods, sales: sales });
+  } catch (err) {
+    return createJsonResponse({ status: "error", message: err.toString() });
   }
-  var allProds = readProductsFromSheet();
-  var allSales = readSalesFromSheet();
-  return createJsonResponse({ status: "success", products: allProds, sales: allSales });
 }
 
 function doPost(e) {
@@ -1236,38 +1287,43 @@ function doPost(e) {
 
     if (action === "addSale") {
       var sale = payload.sale || payload;
-      var sheet = getOrCreateSheet("Vendas", [
-        "Data/Hora", "Vendedor", "Produto", "Preço (R$)", 
-        "Cliente", "Contato", "Endereço", "Frete", 
-        "Pagamento", "Observação", "Comissão (R$)", "Lucro (R$)", "ID Venda"
-      ]);
-      
-      // Se houver múltiplos itens anotados, gera uma linha para cada produto
+      var sheet = getSalesSheet();
+      var dataHora = sale.dateString || Utilities.formatDate(new Date(), Session.getScriptTimeZone() || "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
+
+      // Se houver 2 ou mais produtos anotados na venda, cria uma linha para cada produto com SKU e Preço individuais
       if (sale.itens && Array.isArray(sale.itens) && sale.itens.length > 0) {
         var count = sale.itens.length;
-        // Inserir linhas no topo (linha 2) para que a mais recente fique sempre acima
         for (var idx = count - 1; idx >= 0; idx--) {
           var item = sale.itens[idx];
-          var itemNome = item.produto || sale.produto || "";
-          var itemPreco = (typeof item.preco === "number") ? item.preco.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (item.preco || "0,00");
+          var itemSku = String(item.sku || "").trim();
+          var itemProduto = String(item.produto || sale.produto || "").trim();
           
-          // Calcula comissão e lucro do item (ou rateia se não houver individual)
+          // Se o produto veio no formato "SKU - Nome", separa se o SKU estiver vazio
+          if (!itemSku && itemProduto.indexOf(" - ") !== -1) {
+            var parts = itemProduto.split(" - ");
+            itemSku = parts[0].trim();
+            itemProduto = parts.slice(1).join(" - ").trim();
+          }
+
+          var itemPreco = (typeof item.preco === "number") 
+            ? item.preco.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+            : (item.preco || "0,00");
+
           var itemComissao = "0,00";
           var itemLucro = "0,00";
           if (typeof item.basePrice === "number" && typeof item.preco === "number") {
-            var cVal = item.preco - item.basePrice;
-            itemComissao = cVal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            itemComissao = (item.preco - item.basePrice).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           }
           if (typeof item.basePrice === "number" && typeof item.cost === "number") {
-            var lVal = item.basePrice - item.cost;
-            itemLucro = lVal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            itemLucro = (item.basePrice - item.cost).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           }
 
           sheet.insertRowBefore(2);
-          sheet.getRange(2, 1, 1, 13).setValues([[
-            sale.dateString || new Date().toLocaleString("pt-BR"),
+          sheet.getRange(2, 1, 1, 14).setValues([[
+            dataHora,
             sale.vendedor || "",
-            itemNome,
+            itemSku,
+            itemProduto,
             itemPreco,
             sale.cliente || "",
             sale.contato || "",
@@ -1281,195 +1337,367 @@ function doPost(e) {
           ]]);
         }
       } else {
+        var singleSku = String(sale.sku || "").trim();
+        var singleProduto = String(sale.produto || "").trim();
+        if (!singleSku && singleProduto.indexOf(" - ") !== -1) {
+          var pParts = singleProduto.split(" - ");
+          singleSku = pParts[0].trim();
+          singleProduto = pParts.slice(1).join(" - ").trim();
+        }
+
         sheet.insertRowBefore(2);
-        sheet.getRange(2, 1, 1, 13).setValues([[
-          sale.dateString || new Date().toLocaleString("pt-BR"),
-          sale.vendedor || "", sale.produto || "", sale.preco || "0,00",
-          sale.cliente || "", sale.contato || "", sale.endereco || "",
-          sale.frete || "", sale.pagamento || "", sale.observacao || "",
-          sale.comissao || "0,00", sale.lucro || "0,00",
+        sheet.getRange(2, 1, 1, 14).setValues([[
+          dataHora,
+          sale.vendedor || "",
+          singleSku,
+          singleProduto,
+          sale.preco || "0,00",
+          sale.cliente || "",
+          sale.contato || "",
+          sale.endereco || "",
+          sale.frete || "",
+          sale.pagamento || "",
+          sale.observacao || "",
+          sale.comissao || "0,00",
+          sale.lucro || "0,00",
           sale.id || ("sale-" + new Date().getTime())
         ]]);
       }
-      return createJsonResponse({ status: "success", message: "Venda gravada com sucesso no topo da planilha!" });
+      return createJsonResponse({ status: "success", message: "Venda gravada com sucesso na aba V!" });
     }
 
     if (action === "editSale") {
-      var sale = payload.sale;
-      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Vendas");
-      if (sheet) {
-        var data = sheet.getDataRange().getValues();
-        for (var i = 1; i < data.length; i++) {
-          if (String(data[i][12]) === String(sale.id)) {
-            sheet.getRange(i + 1, 1, 1, 13).setValues([[
-              sale.dateString || String(data[i][0]),
-              sale.vendedor || "", sale.produto || "", sale.preco || "0,00",
-              sale.cliente || "", sale.contato || "", sale.endereco || "",
-              sale.frete || "", sale.pagamento || "", sale.observacao || "",
-              sale.comissao || "0,00", sale.lucro || "0,00", sale.id
+      var editData = payload.sale || payload;
+      var editSheet = getSalesSheet();
+      var dataValues = editSheet.getDataRange().getValues();
+      var idIndex = editSheet.getLastColumn() - 1; // Última coluna é o ID
+
+      for (var i = 1; i < dataValues.length; i++) {
+        var rowId = String(dataValues[i][idIndex] || dataValues[i][12] || dataValues[i][13] || "");
+        if (rowId === String(editData.id)) {
+          var rowNum = i + 1;
+          var numCols = editSheet.getLastColumn();
+          if (numCols >= 14) {
+            editSheet.getRange(rowNum, 1, 1, 14).setValues([[
+              editData.dateString || String(dataValues[i][0]),
+              editData.vendedor || "",
+              editData.sku || String(dataValues[i][2] || ""),
+              editData.produto || "",
+              editData.preco || "0,00",
+              editData.cliente || "",
+              editData.contato || "",
+              editData.endereco || "",
+              editData.frete || "",
+              editData.pagamento || "",
+              editData.observacao || "",
+              editData.comissao || "0,00",
+              editData.lucro || "0,00",
+              editData.id
             ]]);
-            return createJsonResponse({ status: "success", message: "Venda editada!" });
+          } else {
+            editSheet.getRange(rowNum, 1, 1, 13).setValues([[
+              editData.dateString || String(dataValues[i][0]),
+              editData.vendedor || "",
+              editData.produto || "",
+              editData.preco || "0,00",
+              editData.cliente || "",
+              editData.contato || "",
+              editData.endereco || "",
+              editData.frete || "",
+              editData.pagamento || "",
+              editData.observacao || "",
+              editData.comissao || "0,00",
+              editData.lucro || "0,00",
+              editData.id
+            ]]);
           }
+          return createJsonResponse({ status: "success", message: "Venda editada!" });
         }
       }
       return createJsonResponse({ status: "error", message: "Venda não encontrada" });
     }
 
     if (action === "deleteSale") {
-      var id = payload.id;
-      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Vendas");
-      if (sheet) {
-        var data = sheet.getDataRange().getValues();
-        for (var i = 1; i < data.length; i++) {
-          if (String(data[i][12]) === String(id)) {
-            sheet.deleteRow(i + 1);
-            return createJsonResponse({ status: "success", message: "Venda excluída!" });
-          }
+      var delId = String(payload.id || (payload.data && payload.data.id) || "");
+      var delSheet = getSalesSheet();
+      var dValues = delSheet.getDataRange().getValues();
+      var colIdx = delSheet.getLastColumn() - 1;
+
+      for (var d = 1; d < dValues.length; d++) {
+        var curId = String(dValues[d][colIdx] || dValues[d][12] || dValues[d][13] || "");
+        if (curId === delId) {
+          delSheet.deleteRow(d + 1);
+          return createJsonResponse({ status: "success", message: "Venda excluída da aba V!" });
         }
       }
       return createJsonResponse({ status: "error", message: "Venda não encontrada" });
     }
 
+    // Upsert individual de Produto
+    if (action === "saveProduct") {
+      var pData = payload.data || payload.product || payload;
+      upsertSingleProduct(pData);
+      return createJsonResponse({ status: "success", message: "Produto salvo com sucesso!" });
+    }
+
+    // Salvar Lote de Produtos
     if (action === "saveProducts") {
-      var products = payload.products || [];
-      var sheet = getOrCreateSheet("Produtos", [
-        "SKU", "Produto", "Preço Venda (R$)", "Custo (R$)", "Preço Base (R$)", "Categoria", "Estoque (Unid)", "ID"
-      ]);
-      var lastRow = sheet.getLastRow();
-      if (lastRow > 1) {
-        sheet.getRange(2, 1, lastRow - 1, 8).clearContent();
+      var prodList = payload.products || [];
+      var pSheet = getProductsSheet();
+      var lRow = pSheet.getLastRow();
+      if (lRow > 1) {
+        pSheet.getRange(2, 1, lRow - 1, Math.max(pSheet.getLastColumn(), 8)).clearContent();
       }
-      if (products.length > 0) {
-        var rows = products.map(function(p) {
+      if (prodList.length > 0) {
+        var pRows = prodList.map(function(p, idx) {
           return [
-            p.sku || p.id || "",
-            p.name || "",
+            p.sku || ("SKU-" + (idx + 1)),
+            p.name || p.product || "",
             p.price || "0,00",
             p.cost || "",
             p.basePrice || p.price || "0,00",
             p.category || "Geral",
             (p.stock !== undefined && p.stock !== null) ? p.stock : "",
-            p.id || ("p-" + Math.random().toString(36).substr(2, 9))
+            p.id || p.sku || ("p-" + (idx + 1))
           ];
         });
-        sheet.getRange(2, 1, rows.length, 8).setValues(rows);
+        pSheet.getRange(2, 1, pRows.length, 8).setValues(pRows);
       }
-      return createJsonResponse({ status: "success", message: products.length + " produtos salvos na planilha!", count: products.length });
+      return createJsonResponse({ status: "success", message: prodList.length + " produtos salvos na aba Produtos!" });
     }
 
-    return createJsonResponse({ status: "error", message: "Ação não reconhecida" });
-  } catch (error) {
-    return createJsonResponse({ status: "error", message: error.toString() });
+    // Excluir Produto
+    if (action === "deleteProduct") {
+      var prodInfo = payload.data || payload;
+      deleteProductFromSheet(prodInfo);
+      return createJsonResponse({ status: "success", message: "Produto excluído!" });
+    }
+
+    return createJsonResponse({ status: "error", message: "Ação não reconhecida: " + action });
+  } catch (err) {
+    return createJsonResponse({ status: "error", message: err.toString() });
   }
 }
 
-function getOrCreateSheet(sheetName, headers) {
+// Localiza ou cria a aba de Vendas ("V" ou "Vendas")
+function getSalesSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(sheetName);
+  var sheet = ss.getSheetByName(SHEET_NAMES.SALES) || ss.getSheetByName("Vendas") || ss.getSheetByName("vendas");
+  var headers = [
+    "Data/Hora", "Vendedor", "SKU", "Produto", "Preço (R$)", 
+    "Cliente", "Contato", "Endereço", "Frete", 
+    "Pagamento", "Observação", "Comissão (R$)", "Lucro (R$)", "ID Venda"
+  ];
+
   if (!sheet) {
-    sheet = ss.insertSheet(sheetName);
+    sheet = ss.insertSheet(SHEET_NAMES.SALES);
     sheet.appendRow(headers);
-    sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#e2e8f0");
-    sheet.setFrozenRows(1);
+    formatHeaderRow(sheet, headers.length);
+  } else {
+    // Se a aba existir com 13 colunas antigas (sem SKU), adiciona a coluna SKU
+    var currentHeaders = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0].map(function(h) { return String(h || "").trim().toLowerCase(); });
+    if (currentHeaders.indexOf("sku") === -1 && currentHeaders.length <= 13) {
+      sheet.insertColumnAfter(2); // Insere após Vendedor
+      sheet.getRange(1, 3).setValue("SKU");
+      formatHeaderRow(sheet, sheet.getLastColumn());
+    }
   }
   return sheet;
 }
 
-function readProductsFromSheet() {
+// Localiza ou cria a aba Produtos
+function getProductsSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Produtos");
-  if (!sheet) return [];
-  var data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return [];
-  var products = [];
-  for (var i = 1; i < data.length; i++) {
-    var row = data[i];
-    if (!row[1]) continue;
-    
-    // Suporte se houver coluna Estoque na posição 6 (ou ID na 6 vs 7)
-    var stockVal = "";
-    var idVal = "p-" + i;
-    if (row.length >= 8) {
-      stockVal = (row[6] !== "" && row[6] !== undefined) ? String(row[6]) : "";
-      idVal = String(row[7] || ("p-" + i));
-    } else {
-      idVal = String(row[6] || ("p-" + i));
-    }
+  var sheet = ss.getSheetByName(SHEET_NAMES.PRODUCTS);
+  var headers = ["SKU", "Produto", "Preço Venda (R$)", "Custo (R$)", "Preço Base (R$)", "Categoria", "Estoque", "ID"];
 
-    products.push({
-      sku: String(row[0] || ""),
-      name: String(row[1]),
-      price: String(row[2]),
-      cost: String(row[3] || ""),
-      basePrice: String(row[4] || row[2]),
-      category: String(row[5] || "Geral"),
-      stock: stockVal,
-      id: idVal
-    });
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAMES.PRODUCTS);
+    sheet.appendRow(headers);
+    formatHeaderRow(sheet, headers.length);
   }
-  return products;
+  return sheet;
 }
 
-function parseDateStringToTimestamp(str) {
-  if (!str) return 0;
-  if (Object.prototype.toString.call(str) === '[object Date]' || str instanceof Date) {
-    return isNaN(str.getTime()) ? 0 : str.getTime();
+function formatHeaderRow(sheet, numCols) {
+  var range = sheet.getRange(1, 1, 1, numCols);
+  range.setFontWeight("bold");
+  range.setBackground("#5925dc");
+  range.setFontColor("#ffffff");
+  sheet.setFrozenRows(1);
+}
+
+function readProductsFromSheet() {
+  var sheet = getProductsSheet();
+  var values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+
+  var headers = values[0].map(function(h) { return String(h || "").toLowerCase().trim(); });
+  var idxSku = headers.indexOf("sku");
+  var idxProd = headers.findIndex(function(h) { return h === "produto" || h.indexOf("nome") !== -1 || h.indexOf("prod") !== -1; });
+  var idxPreco = headers.findIndex(function(h) { return h.indexOf("preco") !== -1 || h.indexOf("preço") !== -1 || h.indexOf("valor") !== -1; });
+  var idxCusto = headers.indexOf("custo");
+  var idxBase = headers.findIndex(function(h) { return h.indexOf("base") !== -1; });
+  var idxCat = headers.findIndex(function(h) { return h.indexOf("cat") !== -1; });
+  var idxEstoque = headers.findIndex(function(h) { return h.indexOf("estoque") !== -1 || h.indexOf("stock") !== -1; });
+  var idxId = headers.indexOf("id");
+
+  var prods = [];
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    var skuVal = idxSku !== -1 ? String(row[idxSku] || "").trim() : "";
+    var nameVal = idxProd !== -1 ? String(row[idxProd] || "").trim() : String(row[1] || "").trim();
+    if (!nameVal && !skuVal) continue;
+
+    var precoVal = idxPreco !== -1 && row[idxPreco] !== "" ? String(row[idxPreco]) : "0,00";
+    var custoVal = idxCusto !== -1 && row[idxCusto] !== "" ? String(row[idxCusto]) : "";
+    var baseVal = idxBase !== -1 && row[idxBase] !== "" ? String(row[idxBase]) : precoVal;
+    var catVal = idxCat !== -1 && row[idxCat] ? String(row[idxCat]) : "Geral";
+    var stockVal = idxEstoque !== -1 && row[idxEstoque] !== undefined ? String(row[idxEstoque]) : "";
+    var idVal = idxId !== -1 && row[idxId] ? String(row[idxId]).trim() : (skuVal || ("prod-" + i));
+
+    prods.push({
+      id: idVal,
+      sku: skuVal,
+      name: nameVal,
+      product: nameVal,
+      price: precoVal,
+      cost: custoVal,
+      basePrice: baseVal,
+      category: catVal,
+      stock: stockVal
+    });
   }
-  var s = String(str).trim();
-  var parts = s.split(/[\/\s:-]/);
-  if (parts.length >= 3) {
-    var day = parseInt(parts[0], 10);
-    var month = parseInt(parts[1], 10) - 1;
-    var year = parseInt(parts[2], 10) < 100 ? 2000 + parseInt(parts[2], 10) : parseInt(parts[2], 10);
-    var hour = parts[3] ? parseInt(parts[3], 10) : 0;
-    var min = parts[4] ? parseInt(parts[4], 10) : 0;
-    var sec = parts[5] ? parseInt(parts[5], 10) : 0;
-    var d = new Date(year, month, day, hour, min, sec);
-    if (!isNaN(d.getTime())) return d.getTime();
+  return prods;
+}
+
+function upsertSingleProduct(prod) {
+  var sheet = getProductsSheet();
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function(h) { return String(h || "").toLowerCase().trim(); });
+
+  var idxSku = headers.indexOf("sku") !== -1 ? headers.indexOf("sku") : 0;
+  var idxProd = headers.findIndex(function(h) { return h === "produto" || h.indexOf("nome") !== -1; });
+  var idxPreco = headers.findIndex(function(h) { return h.indexOf("preco") !== -1 || h.indexOf("preço") !== -1; });
+  var idxCusto = headers.indexOf("custo");
+  var idxBase = headers.findIndex(function(h) { return h.indexOf("base") !== -1; });
+  var idxCat = headers.findIndex(function(h) { return h.indexOf("cat") !== -1; });
+  var idxEstoque = headers.findIndex(function(h) { return h.indexOf("estoque") !== -1; });
+  var idxId = headers.indexOf("id");
+
+  var targetId = String(prod.id || "").trim();
+  var targetSku = String(prod.sku || "").toUpperCase().trim();
+  var targetName = String(prod.name || prod.product || "").toLowerCase().trim();
+
+  var rowIndex = -1;
+  for (var i = 1; i < values.length; i++) {
+    var rId = idxId !== -1 ? String(values[i][idxId]).trim() : "";
+    var rSku = idxSku !== -1 ? String(values[i][idxSku]).toUpperCase().trim() : "";
+    var rName = idxProd !== -1 ? String(values[i][idxProd]).toLowerCase().trim() : "";
+
+    if ((targetId && rId === targetId) || (targetSku && rSku === targetSku) || (targetName && rName === targetName)) {
+      rowIndex = i + 1;
+      break;
+    }
   }
-  var parsed = new Date(s).getTime();
-  return isNaN(parsed) ? 0 : parsed;
+
+  if (rowIndex > 0) {
+    if (idxSku !== -1 && prod.sku) sheet.getRange(rowIndex, idxSku + 1).setValue(prod.sku);
+    if (idxProd !== -1 && (prod.name || prod.product)) sheet.getRange(rowIndex, idxProd + 1).setValue(prod.name || prod.product);
+    if (idxPreco !== -1 && prod.price !== undefined) sheet.getRange(rowIndex, idxPreco + 1).setValue(prod.price);
+    if (idxCusto !== -1 && prod.cost !== undefined) sheet.getRange(rowIndex, idxCusto + 1).setValue(prod.cost);
+    if (idxBase !== -1 && prod.basePrice !== undefined) sheet.getRange(rowIndex, idxBase + 1).setValue(prod.basePrice);
+    if (idxCat !== -1 && prod.category) sheet.getRange(rowIndex, idxCat + 1).setValue(prod.category);
+    if (idxEstoque !== -1 && prod.stock !== undefined) sheet.getRange(rowIndex, idxEstoque + 1).setValue(prod.stock);
+  } else {
+    sheet.appendRow([
+      prod.sku || "",
+      prod.name || prod.product || "",
+      prod.price || "0,00",
+      prod.cost || "",
+      prod.basePrice || prod.price || "0,00",
+      prod.category || "Geral",
+      (prod.stock !== undefined && prod.stock !== null) ? prod.stock : "",
+      prod.id || prod.sku || ("prod-" + Date.now())
+    ]);
+  }
+}
+
+function deleteProductFromSheet(prodInfo) {
+  var sheet = getProductsSheet();
+  var values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return;
+
+  var id = String((prodInfo && prodInfo.id) || "").trim();
+  var sku = String((prodInfo && (prodInfo.sku || prodInfo.id)) || "").toUpperCase().trim();
+
+  var headers = values[0].map(function(h) { return String(h || "").toLowerCase().trim(); });
+  var idxId = headers.indexOf("id");
+  var idxSku = headers.indexOf("sku");
+
+  for (var i = 1; i < values.length; i++) {
+    var rId = idxId !== -1 ? String(values[i][idxId]).trim() : "";
+    var rSku = idxSku !== -1 ? String(values[i][idxSku]).toUpperCase().trim() : "";
+    if ((id && rId === id) || (sku && rSku === sku)) {
+      sheet.deleteRow(i + 1);
+      return;
+    }
+  }
 }
 
 function readSalesFromSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Vendas");
-  if (!sheet) return [];
-  var data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return [];
+  var sheet = getSalesSheet();
+  var values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+
+  var headers = values[0].map(function(h) { return String(h || "").toLowerCase().trim(); });
+  var hasSkuCol = headers.indexOf("sku") !== -1;
+  var colId = values[0].length - 1;
+
   var sales = [];
-  for (var i = 1; i < data.length; i++) {
-    var row = data[i];
-    if (!row[1] && !row[2]) continue;
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    if (!row[0] && !row[1] && !row[2]) continue;
+
     var rawDate = row[0];
-    var formattedDateStr = "";
-    if (Object.prototype.toString.call(rawDate) === '[object Date]' || rawDate instanceof Date) {
-      formattedDateStr = Utilities.formatDate(rawDate, Session.getScriptTimeZone() || "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
+    var dateFormatted = "";
+    if (Object.prototype.toString.call(rawDate) === "[object Date]" || rawDate instanceof Date) {
+      dateFormatted = Utilities.formatDate(rawDate, Session.getScriptTimeZone() || "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
     } else {
-      formattedDateStr = String(rawDate || "");
+      dateFormatted = String(rawDate || "");
     }
-    var ts = parseDateStringToTimestamp(rawDate) || (Date.now() - i * 1000);
+
+    var vendedor = String(row[1] || "");
+    var sku = hasSkuCol ? String(row[2] || "") : "";
+    var produto = hasSkuCol ? String(row[3] || "") : String(row[2] || "");
+    var preco = hasSkuCol ? String(row[4] || "0,00") : String(row[3] || "0,00");
+    var cliente = hasSkuCol ? String(row[5] || "") : String(row[4] || "");
+    var contato = hasSkuCol ? String(row[6] || "") : String(row[5] || "");
+    var endereco = hasSkuCol ? String(row[7] || "") : String(row[6] || "");
+    var frete = hasSkuCol ? String(row[8] || "") : String(row[7] || "");
+    var pagamento = hasSkuCol ? String(row[9] || "") : String(row[8] || "");
+    var observacao = hasSkuCol ? String(row[10] || "") : String(row[9] || "");
+    var comissao = hasSkuCol ? String(row[11] || "0,00") : String(row[10] || "0,00");
+    var lucro = hasSkuCol ? String(row[12] || "0,00") : String(row[11] || "0,00");
+    var saleId = String(row[colId] || ("sale-" + i));
+
     sales.push({
-      id: String(row[12] || ("sale-" + i)),
-      dateString: formattedDateStr,
-      vendedor: String(row[1]),
-      produto: String(row[2]),
-      preco: String(row[3]),
-      cliente: String(row[4]),
-      contato: String(row[5]),
-      endereco: String(row[6]),
-      frete: String(row[7]),
-      pagamento: String(row[8]),
-      observacao: String(row[9]),
-      comissao: String(row[10]),
-      lucro: String(row[11]),
-      timestamp: ts
+      id: saleId,
+      dateString: dateFormatted,
+      vendedor: vendedor,
+      sku: sku,
+      produto: produto,
+      preco: preco,
+      cliente: cliente,
+      contato: contato,
+      endereco: endereco,
+      frete: frete,
+      pagamento: pagamento,
+      observacao: observacao,
+      comissao: comissao,
+      lucro: lucro
     });
   }
-  // Garante ordem da mais recente para a mais antiga
-  sales.sort(function(a, b) {
-    return (b.timestamp || 0) - (a.timestamp || 0);
-  });
   return sales;
 }
 
