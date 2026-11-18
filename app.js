@@ -3641,11 +3641,65 @@ function handleSalesFormSubmit(e) {
       }).catch(err => console.warn(err));
     }
   } else {
-    appState.sales.unshift(newSale);
-    if (appState.config.googleSheetUrl && appState.config.autoSyncSheet) {
-      syncSaleToGoogleSheets(newSale);
+    // Se houver 2 ou mais produtos anotados na venda, desmembra em linhas individuais tanto no app quanto na planilha
+    if (items.length > 1) {
+      const baseId = 'sale-' + Date.now();
+      const count = items.length;
+      
+      // Itera sobre cada produto criando um registro individual de venda
+      items.forEach((item, idx) => {
+        const itemPrecoNum = item.preco;
+        let itemComissao = '0,00';
+        let itemLucro = '0,00';
+        if (typeof item.basePrice === 'number' && typeof item.preco === 'number') {
+          itemComissao = formatBRL(item.preco - item.basePrice);
+        }
+        if (typeof item.basePrice === 'number' && typeof item.cost === 'number') {
+          itemLucro = formatBRL(item.basePrice - item.cost);
+        }
+
+        const individualSale = {
+          id: `${baseId}-${idx + 1}`,
+          vendedor: newSale.vendedor,
+          filial: newSale.filial,
+          itens: [item],
+          sku: item.sku || '',
+          produto: item.produto,
+          preco: formatBRL(itemPrecoNum),
+          cliente: newSale.cliente,
+          documento: newSale.documento,
+          contato: newSale.contato,
+          cep: newSale.cep,
+          endereco: newSale.endereco,
+          frete: (idx === 0) ? newSale.frete : 'Incluso',
+          total: formatBRL(itemPrecoNum),
+          data_entrega: newSale.data_entrega,
+          pagamento: newSale.pagamento,
+          parcelas: newSale.parcelas,
+          observacao: `Item ${idx + 1}/${count}${newSale.observacao && newSale.observacao !== 'Nenhuma' ? ' - ' + newSale.observacao : ''}`,
+          comissao: itemComissao !== '0,00' ? itemComissao : newSale.comissao,
+          lucro: itemLucro !== '0,00' ? itemLucro : newSale.lucro,
+          enviarGarantia: newSale.enviarGarantia,
+          timestamp: newSale.timestamp + idx,
+          dateString: newSale.dateString
+        };
+
+        appState.sales.unshift(individualSale);
+      });
+
+      if (appState.config.googleSheetUrl && appState.config.autoSyncSheet) {
+        syncSaleToGoogleSheets(newSale);
+      }
+      showToast(`✨ ${count} produtos registrados em linhas separadas com sucesso!`, 'success');
+    } else {
+      const singleItem = items[0] || {};
+      newSale.sku = singleItem.sku || '';
+      appState.sales.unshift(newSale);
+      if (appState.config.googleSheetUrl && appState.config.autoSyncSheet) {
+        syncSaleToGoogleSheets(newSale);
+      }
+      showToast('✨ Venda registrada com sucesso!', 'success');
     }
-    showToast('✨ Venda registrada com sucesso!', 'success');
   }
 
   saveSalesToStorage();

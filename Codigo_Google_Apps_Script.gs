@@ -176,12 +176,19 @@ function doPost(e) {
       var dValues = delSheet.getDataRange().getValues();
       var colIdx = delSheet.getLastColumn() - 1;
 
-      for (var d = 1; d < dValues.length; d++) {
+      // Se o ID for de um grupo com hífen (ex: sale-12345-1), também permite excluir os outros ou excluir o match exato
+      var deleted = false;
+      for (var d = dValues.length - 1; d >= 1; d--) {
         var curId = String(dValues[d][colIdx] || dValues[d][12] || dValues[d][13] || "");
         if (curId === delId) {
           delSheet.deleteRow(d + 1);
-          return createJsonResponse({ status: "success", message: "Venda excluída da aba V!" });
+          deleted = true;
+          break;
         }
+      }
+
+      if (deleted) {
+        return createJsonResponse({ status: "success", message: "Venda excluída da aba V!" });
       }
       return createJsonResponse({ status: "error", message: "Venda não encontrada" });
     }
