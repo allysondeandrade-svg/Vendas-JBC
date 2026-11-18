@@ -5,12 +5,12 @@
  * Sincronização 24h de Vendas e Catálogo de Produtos.
  * Abas utilizadas na Planilha:
  * - "V" (antiga Vendas): [Data/Hora, Vendedor, SKU, Produto, Preço (R$), Cliente, Contato, Endereço, Frete, Pagamento, Observação, Comissão (R$), Lucro (R$), ID Venda]
- * - "Produtos": [SKU, Produto, Preço Venda (R$), Custo (R$), Preço Base (R$), Categoria, Estoque, ID]
+ * - "P" (ou "Produtos"): [SKU, Nome do Produto, Preço Venda (R$), Custo (R$)]
  */
 
 const SHEET_NAMES = {
-  SALES: "V", // Nome da aba de vendas
-  PRODUCTS: "Produtos"
+  SALES: "V",      // Nome da aba de vendas
+  PRODUCTS: "P"    // Nome da aba de produtos (suporta "P" ou "Produtos")
 };
 
 function doGet(e) {
@@ -52,7 +52,6 @@ function doPost(e) {
           var itemSku = String(item.sku || "").trim();
           var itemProduto = String(item.produto || sale.produto || "").trim();
           
-          // Se o produto veio no formato "SKU - Nome", separa se o SKU estiver vazio
           if (!itemSku && itemProduto.indexOf(" - ") !== -1) {
             var parts = itemProduto.split(" - ");
             itemSku = parts[0].trim();
@@ -124,7 +123,7 @@ function doPost(e) {
       var editData = payload.sale || payload;
       var editSheet = getSalesSheet();
       var dataValues = editSheet.getDataRange().getValues();
-      var idIndex = editSheet.getLastColumn() - 1; // Última coluna é o ID
+      var idIndex = editSheet.getLastColumn() - 1;
 
       for (var i = 1; i < dataValues.length; i++) {
         var rowId = String(dataValues[i][idIndex] || dataValues[i][12] || dataValues[i][13] || "");
@@ -200,7 +199,7 @@ function doPost(e) {
       var pSheet = getProductsSheet();
       var lRow = pSheet.getLastRow();
       if (lRow > 1) {
-        pSheet.getRange(2, 1, lRow - 1, Math.max(pSheet.getLastColumn(), 8)).clearContent();
+        pSheet.getRange(2, 1, lRow - 1, Math.max(pSheet.getLastColumn(), 4)).clearContent();
       }
       if (prodList.length > 0) {
         var pRows = prodList.map(function(p, idx) {
@@ -208,16 +207,12 @@ function doPost(e) {
             p.sku || ("SKU-" + (idx + 1)),
             p.name || p.product || "",
             p.price || "0,00",
-            p.cost || "",
-            p.basePrice || p.price || "0,00",
-            p.category || "Geral",
-            (p.stock !== undefined && p.stock !== null) ? p.stock : "",
-            p.id || p.sku || ("p-" + (idx + 1))
+            p.cost || ""
           ];
         });
-        pSheet.getRange(2, 1, pRows.length, 8).setValues(pRows);
+        pSheet.getRange(2, 1, pRows.length, 4).setValues(pRows);
       }
-      return createJsonResponse({ status: "success", message: prodList.length + " produtos salvos na aba Produtos!" });
+      return createJsonResponse({ status: "success", message: prodList.length + " produtos salvos na aba P!" });
     }
 
     // Excluir Produto
@@ -248,7 +243,6 @@ function getSalesSheet() {
     sheet.appendRow(headers);
     formatHeaderRow(sheet, headers.length);
   } else {
-    // Se a aba existir com 13 colunas antigas (sem SKU), adiciona a coluna SKU
     var currentHeaders = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0].map(function(h) { return String(h || "").trim().toLowerCase(); });
     if (currentHeaders.indexOf("sku") === -1 && currentHeaders.length <= 13) {
       sheet.insertColumnAfter(2); // Insere após Vendedor
@@ -259,14 +253,14 @@ function getSalesSheet() {
   return sheet;
 }
 
-// Localiza ou cria a aba Produtos
+// Localiza ou cria a aba Produtos (prioriza "P", depois "Produtos")
 function getProductsSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.PRODUCTS);
-  var headers = ["SKU", "Produto", "Preço Venda (R$)", "Custo (R$)", "Preço Base (R$)", "Categoria", "Estoque", "ID"];
+  var sheet = ss.getSheetByName("P") || ss.getSheetByName("p") || ss.getSheetByName(SHEET_NAMES.PRODUCTS) || ss.getSheetByName("Produtos");
+  var headers = ["SKU", "Nome do Produto", "Preço Venda (R$)", "Custo (R$)"];
 
   if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAMES.PRODUCTS);
+    sheet = ss.insertSheet("P");
     sheet.appendRow(headers);
     formatHeaderRow(sheet, headers.length);
   }
@@ -287,28 +281,54 @@ function readProductsFromSheet() {
   if (values.length <= 1) return [];
 
   var headers = values[0].map(function(h) { return String(h || "").toLowerCase().trim(); });
+  
+  // Detecção inteligente de colunas baseada no layout da aba P: [SKU, Nome do Produto, Preço Venda (R$), Custo (R$)]
   var idxSku = headers.indexOf("sku");
-  var idxProd = headers.findIndex(function(h) { return h === "produto" || h.indexOf("nome") !== -1 || h.indexOf("prod") !== -1; });
-  var idxPreco = headers.findIndex(function(h) { return h.indexOf("preco") !== -1 || h.indexOf("preço") !== -1 || h.indexOf("valor") !== -1; });
-  var idxCusto = headers.indexOf("custo");
-  var idxBase = headers.findIndex(function(h) { return h.indexOf("base") !== -1; });
-  var idxCat = headers.findIndex(function(h) { return h.indexOf("cat") !== -1; });
-  var idxEstoque = headers.findIndex(function(h) { return h.indexOf("estoque") !== -1 || h.indexOf("stock") !== -1; });
-  var idxId = headers.indexOf("id");
+  if (idxSku === -1) idxSku = 0; // Coluna A padrão
+
+  var idxProd = headers.findIndex(function(h) { return h.indexOf("nome") !== -1 || h.indexOf("prod") !== -1; });
+  if (idxProd === -1) idxProd = 1; // Coluna B padrão
+
+  var idxPreco = headers.findIndex(function(h) { return h.indexOf("preço") !== -1 || h.indexOf("preco") !== -1 || h.indexOf("venda") !== -1 || h.indexOf("valor") !== -1; });
+  if (idxPreco === -1) idxPreco = 2; // Coluna C padrão
+
+  var idxCusto = headers.findIndex(function(h) { return h.indexOf("custo") !== -1 || h.indexOf("cust") !== -1; });
+  if (idxCusto === -1 && headers.length > 3) idxCusto = 3; // Coluna D padrão
 
   var prods = [];
   for (var i = 1; i < values.length; i++) {
     var row = values[i];
     var skuVal = idxSku !== -1 ? String(row[idxSku] || "").trim() : "";
-    var nameVal = idxProd !== -1 ? String(row[idxProd] || "").trim() : String(row[1] || "").trim();
+    var nameVal = idxProd !== -1 ? String(row[idxProd] || "").trim() : "";
+    
+    // Se a linha estiver completamente vazia, pula
     if (!nameVal && !skuVal) continue;
 
-    var precoVal = idxPreco !== -1 && row[idxPreco] !== "" ? String(row[idxPreco]) : "0,00";
-    var custoVal = idxCusto !== -1 && row[idxCusto] !== "" ? String(row[idxCusto]) : "";
-    var baseVal = idxBase !== -1 && row[idxBase] !== "" ? String(row[idxBase]) : precoVal;
-    var catVal = idxCat !== -1 && row[idxCat] ? String(row[idxCat]) : "Geral";
-    var stockVal = idxEstoque !== -1 && row[idxEstoque] !== undefined ? String(row[idxEstoque]) : "";
-    var idVal = idxId !== -1 && row[idxId] ? String(row[idxId]).trim() : (skuVal || ("prod-" + i));
+    // Se o SKU estiver preenchido mas o nome vazio, usa o SKU como nome e vice-versa
+    if (!nameVal) nameVal = skuVal;
+    if (!skuVal) skuVal = nameVal;
+
+    // Trata formatações numéricas como R$ 30,00 ou números diretos
+    var precoVal = "0,00";
+    if (idxPreco !== -1 && row[idxPreco] !== "" && row[idxPreco] !== undefined) {
+      if (typeof row[idxPreco] === "number") {
+        precoVal = row[idxPreco].toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      } else {
+        precoVal = String(row[idxPreco]).replace("R$", "").trim();
+      }
+    }
+
+    var custoVal = "";
+    if (idxCusto !== -1 && row[idxCusto] !== "" && row[idxCusto] !== undefined) {
+      if (typeof row[idxCusto] === "number") {
+        custoVal = row[idxCusto].toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      } else {
+        custoVal = String(row[idxCusto]).replace("R$", "").trim();
+      }
+    }
+
+    var baseVal = precoVal;
+    var idVal = skuVal || ("prod-" + i);
 
     prods.push({
       id: idVal,
@@ -318,8 +338,8 @@ function readProductsFromSheet() {
       price: precoVal,
       cost: custoVal,
       basePrice: baseVal,
-      category: catVal,
-      stock: stockVal
+      category: "Geral",
+      stock: ""
     });
   }
   return prods;
@@ -331,48 +351,43 @@ function upsertSingleProduct(prod) {
   var headers = values[0].map(function(h) { return String(h || "").toLowerCase().trim(); });
 
   var idxSku = headers.indexOf("sku") !== -1 ? headers.indexOf("sku") : 0;
-  var idxProd = headers.findIndex(function(h) { return h === "produto" || h.indexOf("nome") !== -1; });
-  var idxPreco = headers.findIndex(function(h) { return h.indexOf("preco") !== -1 || h.indexOf("preço") !== -1; });
-  var idxCusto = headers.indexOf("custo");
-  var idxBase = headers.findIndex(function(h) { return h.indexOf("base") !== -1; });
-  var idxCat = headers.findIndex(function(h) { return h.indexOf("cat") !== -1; });
-  var idxEstoque = headers.findIndex(function(h) { return h.indexOf("estoque") !== -1; });
-  var idxId = headers.indexOf("id");
+  var idxProd = headers.findIndex(function(h) { return h.indexOf("nome") !== -1 || h.indexOf("prod") !== -1; });
+  if (idxProd === -1) idxProd = 1;
 
-  var targetId = String(prod.id || "").trim();
+  var idxPreco = headers.findIndex(function(h) { return h.indexOf("preço") !== -1 || h.indexOf("preco") !== -1 || h.indexOf("venda") !== -1; });
+  if (idxPreco === -1) idxPreco = 2;
+
+  var idxCusto = headers.findIndex(function(h) { return h.indexOf("custo") !== -1; });
+  if (idxCusto === -1 && headers.length > 3) idxCusto = 3;
+
   var targetSku = String(prod.sku || "").toUpperCase().trim();
   var targetName = String(prod.name || prod.product || "").toLowerCase().trim();
 
   var rowIndex = -1;
   for (var i = 1; i < values.length; i++) {
-    var rId = idxId !== -1 ? String(values[i][idxId]).trim() : "";
     var rSku = idxSku !== -1 ? String(values[i][idxSku]).toUpperCase().trim() : "";
     var rName = idxProd !== -1 ? String(values[i][idxProd]).toLowerCase().trim() : "";
 
-    if ((targetId && rId === targetId) || (targetSku && rSku === targetSku) || (targetName && rName === targetName)) {
+    if ((targetSku && rSku === targetSku) || (targetName && rName === targetName)) {
       rowIndex = i + 1;
       break;
     }
   }
 
+  var formattedPrice = prod.price !== undefined ? String(prod.price).replace("R$", "").trim() : "0,00";
+  var formattedCost = prod.cost !== undefined ? String(prod.cost).replace("R$", "").trim() : "";
+
   if (rowIndex > 0) {
     if (idxSku !== -1 && prod.sku) sheet.getRange(rowIndex, idxSku + 1).setValue(prod.sku);
     if (idxProd !== -1 && (prod.name || prod.product)) sheet.getRange(rowIndex, idxProd + 1).setValue(prod.name || prod.product);
-    if (idxPreco !== -1 && prod.price !== undefined) sheet.getRange(rowIndex, idxPreco + 1).setValue(prod.price);
-    if (idxCusto !== -1 && prod.cost !== undefined) sheet.getRange(rowIndex, idxCusto + 1).setValue(prod.cost);
-    if (idxBase !== -1 && prod.basePrice !== undefined) sheet.getRange(rowIndex, idxBase + 1).setValue(prod.basePrice);
-    if (idxCat !== -1 && prod.category) sheet.getRange(rowIndex, idxCat + 1).setValue(prod.category);
-    if (idxEstoque !== -1 && prod.stock !== undefined) sheet.getRange(rowIndex, idxEstoque + 1).setValue(prod.stock);
+    if (idxPreco !== -1 && prod.price !== undefined) sheet.getRange(rowIndex, idxPreco + 1).setValue(formattedPrice);
+    if (idxCusto !== -1 && prod.cost !== undefined) sheet.getRange(rowIndex, idxCusto + 1).setValue(formattedCost);
   } else {
     sheet.appendRow([
       prod.sku || "",
       prod.name || prod.product || "",
-      prod.price || "0,00",
-      prod.cost || "",
-      prod.basePrice || prod.price || "0,00",
-      prod.category || "Geral",
-      (prod.stock !== undefined && prod.stock !== null) ? prod.stock : "",
-      prod.id || prod.sku || ("prod-" + Date.now())
+      formattedPrice,
+      formattedCost
     ]);
   }
 }
@@ -382,17 +397,18 @@ function deleteProductFromSheet(prodInfo) {
   var values = sheet.getDataRange().getValues();
   if (values.length <= 1) return;
 
-  var id = String((prodInfo && prodInfo.id) || "").trim();
   var sku = String((prodInfo && (prodInfo.sku || prodInfo.id)) || "").toUpperCase().trim();
+  var name = String((prodInfo && (prodInfo.name || prodInfo.product)) || "").toLowerCase().trim();
 
   var headers = values[0].map(function(h) { return String(h || "").toLowerCase().trim(); });
-  var idxId = headers.indexOf("id");
-  var idxSku = headers.indexOf("sku");
+  var idxSku = headers.indexOf("sku") !== -1 ? headers.indexOf("sku") : 0;
+  var idxProd = headers.findIndex(function(h) { return h.indexOf("nome") !== -1 || h.indexOf("prod") !== -1; });
+  if (idxProd === -1) idxProd = 1;
 
   for (var i = 1; i < values.length; i++) {
-    var rId = idxId !== -1 ? String(values[i][idxId]).trim() : "";
     var rSku = idxSku !== -1 ? String(values[i][idxSku]).toUpperCase().trim() : "";
-    if ((id && rId === id) || (sku && rSku === sku)) {
+    var rName = idxProd !== -1 ? String(values[i][idxProd]).toLowerCase().trim() : "";
+    if ((sku && rSku === sku) || (name && rName === name)) {
       sheet.deleteRow(i + 1);
       return;
     }
@@ -459,3 +475,4 @@ function createJsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
+// FIM DO ARQUIVO
