@@ -1851,6 +1851,28 @@ html, body {
   to { opacity: 1; }
 }
 
+@keyframes popInModal {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+#deleteSaleModalBackdrop {
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+}
+
+#deleteSaleModalBackdrop .modal-content {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
 .bottom-sheet {
   width: 100%;
   max-width: 480px;
