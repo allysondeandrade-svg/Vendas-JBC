@@ -3686,11 +3686,13 @@ function handleSalesFormSubmit(e) {
         };
 
         appState.sales.unshift(individualSale);
+
+        // Sincroniza cada item individualmente na planilha Google com seu próprio ID, SKU e Preço
+        if (appState.config.googleSheetUrl && appState.config.autoSyncSheet) {
+          syncSaleToGoogleSheets(individualSale);
+        }
       });
 
-      if (appState.config.googleSheetUrl && appState.config.autoSyncSheet) {
-        syncSaleToGoogleSheets(newSale);
-      }
       showToast(`✨ ${count} produtos registrados em linhas separadas com sucesso!`, 'success');
     } else {
       const singleItem = items[0] || {};

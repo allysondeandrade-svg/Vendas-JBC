@@ -44,8 +44,11 @@ function doPost(e) {
       var sheet = getSalesSheet();
       var dataHora = sale.dateString || Utilities.formatDate(new Date(), Session.getScriptTimeZone() || "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
 
-      // Se houver 2 ou mais produtos anotados na venda, cria uma linha para cada produto com SKU e Preço individuais
-      if (sale.itens && Array.isArray(sale.itens) && sale.itens.length > 0) {
+      // Resolve o mapa dinâmico de colunas para garantir que cada dado vá para o cabeçalho correspondente
+      var colMap = getSalesColumnMap(sheet);
+
+      // Se houver 2 ou mais produtos anotados na venda (caso enviado em lote único), cria uma linha para cada produto
+      if (sale.itens && Array.isArray(sale.itens) && sale.itens.length > 1) {
         var count = sale.itens.length;
         for (var idx = count - 1; idx >= 0; idx--) {
           var item = sale.itens[idx];
@@ -71,25 +74,27 @@ function doPost(e) {
             itemLucro = (item.basePrice - item.cost).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           }
 
-          sheet.insertRowBefore(2);
-          sheet.getRange(2, 1, 1, 14).setValues([[
-            dataHora,
-            sale.vendedor || "",
-            itemSku,
-            itemProduto,
-            itemPreco,
-            sale.cliente || "",
-            sale.contato || "",
-            sale.endereco || "",
-            (idx === 0) ? (sale.frete || "") : "Incluso",
-            sale.pagamento || "",
-            (count > 1 ? ("Item " + (idx + 1) + "/" + count + " - " + (sale.observacao || "")) : (sale.observacao || "")),
-            itemComissao !== "0,00" ? itemComissao : (sale.comissao || "0,00"),
-            itemLucro !== "0,00" ? itemLucro : (sale.lucro || "0,00"),
-            (sale.id || ("sale-" + new Date().getTime())) + (count > 1 ? ("-" + (idx + 1)) : "")
-          ]]);
+          var itemData = {
+            dateString: dataHora,
+            vendedor: sale.vendedor || "",
+            sku: itemSku,
+            produto: itemProduto,
+            preco: itemPreco,
+            cliente: sale.cliente || "",
+            contato: sale.contato || "",
+            endereco: sale.endereco || "",
+            frete: (idx === 0) ? (sale.frete || "") : "Incluso",
+            pagamento: sale.pagamento || "",
+            observacao: count > 1 ? ("Item " + (idx + 1) + "/" + count + " - " + (sale.observacao || "")) : (sale.observacao || ""),
+            comissao: itemComissao !== "0,00" ? itemComissao : (sale.comissao || "0,00"),
+            lucro: itemLucro !== "0,00" ? itemLucro : (sale.lucro || "0,00"),
+            id: (sale.id || ("sale-" + new Date().getTime())) + "-" + (idx + 1)
+          };
+
+          insertSaleRowByMap(sheet, colMap, itemData);
         }
       } else {
+        // Venda de 1 produto (ou item já desmembrado)
         var singleSku = String(sale.sku || "").trim();
         var singleProduto = String(sale.produto || "").trim();
         if (!singleSku && singleProduto.indexOf(" - ") !== -1) {
@@ -98,23 +103,33 @@ function doPost(e) {
           singleProduto = pParts.slice(1).join(" - ").trim();
         }
 
-        sheet.insertRowBefore(2);
-        sheet.getRange(2, 1, 1, 14).setValues([[
-          dataHora,
-          sale.vendedor || "",
-          singleSku,
-          singleProduto,
-          sale.preco || "0,00",
-          sale.cliente || "",
-          sale.contato || "",
-          sale.endereco || "",
-          sale.frete || "",
-          sale.pagamento || "",
-          sale.observacao || "",
-          sale.comissao || "0,00",
-          sale.lucro || "0,00",
-          sale.id || ("sale-" + new Date().getTime())
-        ]]);
+        var singlePreco = sale.preco;
+        if (sale.itens && sale.itens.length === 1 && sale.itens[0].preco !== undefined) {
+          singlePreco = typeof sale.itens[0].preco === "number" 
+            ? sale.itens[0].preco.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : sale.itens[0].preco;
+          if (!singleSku) singleSku = sale.itens[0].sku || "";
+          if (!singleProduto) singleProduto = sale.itens[0].produto || "";
+        }
+
+        var saleDataToInsert = {
+          dateString: dataHora,
+          vendedor: sale.vendedor || "",
+          sku: singleSku,
+          produto: singleProduto,
+          preco: singlePreco || "0,00",
+          cliente: sale.cliente || "",
+          contato: sale.contato || "",
+          endereco: sale.endereco || "",
+          frete: sale.frete || "",
+          pagamento: sale.pagamento || "",
+          observacao: sale.observacao || "",
+          comissao: sale.comissao || "0,00",
+          lucro: sale.lucro || "0,00",
+          id: sale.id || ("sale-" + new Date().getTime())
+        };
+
+        insertSaleRowByMap(sheet, colMap, saleDataToInsert);
       }
       return createJsonResponse({ status: "success", message: "Venda gravada com sucesso na aba V!" });
     }
@@ -123,47 +138,14 @@ function doPost(e) {
       var editData = payload.sale || payload;
       var editSheet = getSalesSheet();
       var dataValues = editSheet.getDataRange().getValues();
-      var idIndex = editSheet.getLastColumn() - 1;
+      var colMap = getSalesColumnMap(editSheet);
+      var idIndex = colMap.id !== -1 ? colMap.id : (editSheet.getLastColumn() - 1);
 
       for (var i = 1; i < dataValues.length; i++) {
         var rowId = String(dataValues[i][idIndex] || dataValues[i][12] || dataValues[i][13] || "");
         if (rowId === String(editData.id)) {
           var rowNum = i + 1;
-          var numCols = editSheet.getLastColumn();
-          if (numCols >= 14) {
-            editSheet.getRange(rowNum, 1, 1, 14).setValues([[
-              editData.dateString || String(dataValues[i][0]),
-              editData.vendedor || "",
-              editData.sku || String(dataValues[i][2] || ""),
-              editData.produto || "",
-              editData.preco || "0,00",
-              editData.cliente || "",
-              editData.contato || "",
-              editData.endereco || "",
-              editData.frete || "",
-              editData.pagamento || "",
-              editData.observacao || "",
-              editData.comissao || "0,00",
-              editData.lucro || "0,00",
-              editData.id
-            ]]);
-          } else {
-            editSheet.getRange(rowNum, 1, 1, 13).setValues([[
-              editData.dateString || String(dataValues[i][0]),
-              editData.vendedor || "",
-              editData.produto || "",
-              editData.preco || "0,00",
-              editData.cliente || "",
-              editData.contato || "",
-              editData.endereco || "",
-              editData.frete || "",
-              editData.pagamento || "",
-              editData.observacao || "",
-              editData.comissao || "0,00",
-              editData.lucro || "0,00",
-              editData.id
-            ]]);
-          }
+          updateSaleRowByMap(editSheet, colMap, rowNum, editData, dataValues[i]);
           return createJsonResponse({ status: "success", message: "Venda editada!" });
         }
       }
@@ -187,10 +169,11 @@ function doPost(e) {
       var deleted = false;
 
       // 1ª Tentativa: busca reversa por ID exato em qualquer uma das possíveis colunas de ID
+      var colMap = getSalesColumnMap(delSheet);
       if (delId) {
         for (var d = dValues.length - 1; d >= 1; d--) {
           var row = dValues[d];
-          var curId = String(row[lastColIdx] || row[13] || row[12] || "").trim();
+          var curId = String((colMap.id !== -1 ? row[colMap.id] : "") || row[lastColIdx] || row[13] || row[12] || "").trim();
           if (curId === delId) {
             delSheet.deleteRow(d + 1);
             deleted = true;
@@ -200,11 +183,11 @@ function doPost(e) {
       }
 
       // 2ª Tentativa: se não encontrou por ID (ex: linhas importadas antigas sem ID salvo),
-      // faz match pelos dados da venda: Data/Hora + Vendedor + Produto
+      // faz match pelos dados da venda mapeados dinamicamente: Data/Hora + Vendedor + Produto
       if (!deleted && (delProd || delVend || delData)) {
         for (var d2 = dValues.length - 1; d2 >= 1; d2--) {
           var r = dValues[d2];
-          var rawDate = r[0];
+          var rawDate = colMap.data !== -1 ? r[colMap.data] : r[0];
           var rDateStr = "";
           if (Object.prototype.toString.call(rawDate) === "[object Date]" || rawDate instanceof Date) {
             rDateStr = Utilities.formatDate(rawDate, Session.getScriptTimeZone() || "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
@@ -212,11 +195,10 @@ function doPost(e) {
             rDateStr = String(rawDate || "").trim();
           }
 
-          var rVend = String(r[1] || "").toLowerCase().trim();
-          // Colunas SKU e Produto
-          var rSku = String(r[2] || "").toLowerCase().trim();
-          var rProd = String(r[3] || r[2] || "").toLowerCase().trim();
-          var rPreco = String(r[4] || r[3] || "").replace("R$", "").replace(/\s/g, "").trim();
+          var rVend = colMap.vendedor !== -1 ? String(r[colMap.vendedor] || "").toLowerCase().trim() : "";
+          var rSku = colMap.sku !== -1 ? String(r[colMap.sku] || "").toLowerCase().trim() : "";
+          var rProd = colMap.produto !== -1 ? String(r[colMap.produto] || "").toLowerCase().trim() : "";
+          var rPreco = colMap.preco !== -1 ? String(r[colMap.preco] || "").replace("R$", "").replace(/\s/g, "").trim() : "";
 
           var matchVend = !delVend || rVend === delVend;
           var matchProd = !delProd || rProd === delProd || rSku === delProd || rProd.indexOf(delProd) !== -1;
@@ -285,6 +267,104 @@ function doPost(e) {
   }
 }
 
+// Helper para mapear dinamicamente os índices de cada coluna da aba de Vendas ("V")
+function getSalesColumnMap(sheet) {
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headerValues = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var headers = headerValues.map(function(h) { return String(h || "").toLowerCase().trim(); });
+
+  function findIdx(names, fallback) {
+    for (var i = 0; i < names.length; i++) {
+      var n = names[i];
+      var idx = headers.findIndex(function(h) { return h.indexOf(n) !== -1; });
+      if (idx !== -1) return idx;
+    }
+    return fallback;
+  }
+
+  var idxData = findIdx(["data"], 0);
+  var idxVendedor = findIdx(["vendedor", "vend"], 1);
+  var idxSku = headers.indexOf("sku"); // pode ser -1 se não tiver coluna SKU
+  var idxProduto = findIdx(["produto", "prod", "item", "descri"], idxSku !== -1 ? 3 : 2);
+  var idxPreco = findIdx(["preço", "preco", "valor"], idxSku !== -1 ? 4 : 3);
+  var idxCliente = findIdx(["cliente", "comprador"], idxSku !== -1 ? 5 : 4);
+  var idxContato = findIdx(["contato", "telefone", "tel", "celular", "whats"], idxSku !== -1 ? 6 : 5);
+  var idxEndereco = findIdx(["endereço", "endereco", "local"], idxSku !== -1 ? 7 : 6);
+  var idxFrete = findIdx(["frete"], idxSku !== -1 ? 8 : 7);
+  var idxPagamento = findIdx(["pagamento", "pagto", "forma"], idxSku !== -1 ? 9 : 8);
+  var idxObservacao = findIdx(["observa", "obs"], idxSku !== -1 ? 10 : 9);
+  var idxComissao = findIdx(["comissão", "comissao"], idxSku !== -1 ? 11 : 10);
+  var idxLucro = findIdx(["lucro"], idxSku !== -1 ? 12 : 11);
+  var idxId = findIdx(["id venda", "id_venda", "id"], headers.length - 1);
+
+  return {
+    headersCount: headers.length,
+    data: idxData,
+    vendedor: idxVendedor,
+    sku: idxSku,
+    produto: idxProduto,
+    preco: idxPreco,
+    cliente: idxCliente,
+    contato: idxContato,
+    endereco: idxEndereco,
+    frete: idxFrete,
+    pagamento: idxPagamento,
+    observacao: idxObservacao,
+    comissao: idxComissao,
+    lucro: idxLucro,
+    id: idxId
+  };
+}
+
+function buildSaleRowArray(colMap, saleData) {
+  var row = new Array(colMap.headersCount);
+  for (var k = 0; k < colMap.headersCount; k++) row[k] = "";
+
+  if (colMap.data !== -1) row[colMap.data] = saleData.dateString || "";
+  if (colMap.vendedor !== -1) row[colMap.vendedor] = saleData.vendedor || "";
+  if (colMap.sku !== -1) row[colMap.sku] = saleData.sku || "";
+  if (colMap.produto !== -1) row[colMap.produto] = saleData.produto || "";
+  if (colMap.preco !== -1) row[colMap.preco] = saleData.preco || "0,00";
+  if (colMap.cliente !== -1) row[colMap.cliente] = saleData.cliente || "";
+  if (colMap.contato !== -1) row[colMap.contato] = saleData.contato || "";
+  if (colMap.endereco !== -1) row[colMap.endereco] = saleData.endereco || "";
+  if (colMap.frete !== -1) row[colMap.frete] = saleData.frete || "";
+  if (colMap.pagamento !== -1) row[colMap.pagamento] = saleData.pagamento || "";
+  if (colMap.observacao !== -1) row[colMap.observacao] = saleData.observacao || "";
+  if (colMap.comissao !== -1) row[colMap.comissao] = saleData.comissao || "0,00";
+  if (colMap.lucro !== -1) row[colMap.lucro] = saleData.lucro || "0,00";
+  if (colMap.id !== -1) row[colMap.id] = saleData.id || "";
+
+  return row;
+}
+
+function insertSaleRowByMap(sheet, colMap, saleData) {
+  var row = buildSaleRowArray(colMap, saleData);
+  sheet.insertRowBefore(2);
+  sheet.getRange(2, 1, 1, row.length).setValues([row]);
+}
+
+function updateSaleRowByMap(sheet, colMap, rowNum, editData, existingRow) {
+  var row = existingRow ? existingRow.slice(0, colMap.headersCount) : new Array(colMap.headersCount);
+  
+  if (colMap.data !== -1 && editData.dateString !== undefined) row[colMap.data] = editData.dateString;
+  if (colMap.vendedor !== -1 && editData.vendedor !== undefined) row[colMap.vendedor] = editData.vendedor;
+  if (colMap.sku !== -1 && editData.sku !== undefined) row[colMap.sku] = editData.sku;
+  if (colMap.produto !== -1 && editData.produto !== undefined) row[colMap.produto] = editData.produto;
+  if (colMap.preco !== -1 && editData.preco !== undefined) row[colMap.preco] = editData.preco;
+  if (colMap.cliente !== -1 && editData.cliente !== undefined) row[colMap.cliente] = editData.cliente;
+  if (colMap.contato !== -1 && editData.contato !== undefined) row[colMap.contato] = editData.contato;
+  if (colMap.endereco !== -1 && editData.endereco !== undefined) row[colMap.endereco] = editData.endereco;
+  if (colMap.frete !== -1 && editData.frete !== undefined) row[colMap.frete] = editData.frete;
+  if (colMap.pagamento !== -1 && editData.pagamento !== undefined) row[colMap.pagamento] = editData.pagamento;
+  if (colMap.observacao !== -1 && editData.observacao !== undefined) row[colMap.observacao] = editData.observacao;
+  if (colMap.comissao !== -1 && editData.comissao !== undefined) row[colMap.comissao] = editData.comissao;
+  if (colMap.lucro !== -1 && editData.lucro !== undefined) row[colMap.lucro] = editData.lucro;
+  if (colMap.id !== -1 && editData.id !== undefined) row[colMap.id] = editData.id;
+
+  sheet.getRange(rowNum, 1, 1, row.length).setValues([row]);
+}
+
 // Localiza ou cria a aba de Vendas ("V" ou "Vendas")
 function getSalesSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -300,14 +380,32 @@ function getSalesSheet() {
     sheet.appendRow(headers);
     formatHeaderRow(sheet, headers.length);
   } else {
-    var currentHeaders = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0].map(function(h) { return String(h || "").trim().toLowerCase(); });
-    if (currentHeaders.indexOf("sku") === -1 && currentHeaders.length <= 13) {
-      sheet.insertColumnAfter(2); // Insere após Vendedor
-      sheet.getRange(1, 3).setValue("SKU");
-      formatHeaderRow(sheet, sheet.getLastColumn());
-    }
+    ensureSalesHeadersLayout(sheet);
   }
   return sheet;
+}
+
+// Garante que os cabeçalhos da aba V estejam na ordem exata e esperada
+function ensureSalesHeadersLayout(sheet) {
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var rawHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var headers = rawHeaders.map(function(h) { return String(h || "").trim().toLowerCase(); });
+
+  // Se a aba tem cabeçalhos mas a ordem ficou invertida (ex: Preço antes de Produto) ou falta coluna SKU/ID
+  var hasSku = headers.indexOf("sku") !== -1;
+  var idxProduto = headers.findIndex(function(h) { return h.indexOf("prod") !== -1; });
+  var idxPreco = headers.findIndex(function(h) { return h.indexOf("preço") !== -1 || h.indexOf("preco") !== -1 || h.indexOf("valor") !== -1; });
+
+  // Se não tem SKU e tem poucas colunas antigas, insere a coluna SKU após Vendedor
+  if (!hasSku && headers.length <= 13) {
+    sheet.insertColumnAfter(2); // Coluna C
+    sheet.getRange(1, 3).setValue("SKU");
+  }
+
+  // Se Preço veio antes de Produto na linha 1 (ex: Coluna D = Preço e Coluna E = Produto como na foto enviada),
+  // normaliza o cabeçalho oficial para: Coluna C: SKU, Coluna D: Produto, Coluna E: Preço (R$) ou Coluna D: Preço, Coluna E: Produto
+  // Para evitar quebrar linhas antigas, nós ajustamos a escrita via getSalesColumnMap(sheet),
+  // e garantimos que a linha de cabeçalho tenha o nome certo de cada coluna.
 }
 
 // Localiza ou cria a aba Produtos (prioriza "P", depois "Produtos")
@@ -477,16 +575,14 @@ function readSalesFromSheet() {
   var values = sheet.getDataRange().getValues();
   if (values.length <= 1) return [];
 
-  var headers = values[0].map(function(h) { return String(h || "").toLowerCase().trim(); });
-  var hasSkuCol = headers.indexOf("sku") !== -1;
-  var colId = values[0].length - 1;
+  var colMap = getSalesColumnMap(sheet);
 
   var sales = [];
   for (var i = 1; i < values.length; i++) {
     var row = values[i];
-    if (!row[0] && !row[1] && !row[2]) continue;
+    if (!row[0] && !row[1] && !row[2] && !row[3]) continue;
 
-    var rawDate = row[0];
+    var rawDate = colMap.data !== -1 ? row[colMap.data] : row[0];
     var dateFormatted = "";
     if (Object.prototype.toString.call(rawDate) === "[object Date]" || rawDate instanceof Date) {
       dateFormatted = Utilities.formatDate(rawDate, Session.getScriptTimeZone() || "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
@@ -494,19 +590,19 @@ function readSalesFromSheet() {
       dateFormatted = String(rawDate || "");
     }
 
-    var vendedor = String(row[1] || "");
-    var sku = hasSkuCol ? String(row[2] || "") : "";
-    var produto = hasSkuCol ? String(row[3] || "") : String(row[2] || "");
-    var preco = hasSkuCol ? String(row[4] || "0,00") : String(row[3] || "0,00");
-    var cliente = hasSkuCol ? String(row[5] || "") : String(row[4] || "");
-    var contato = hasSkuCol ? String(row[6] || "") : String(row[5] || "");
-    var endereco = hasSkuCol ? String(row[7] || "") : String(row[6] || "");
-    var frete = hasSkuCol ? String(row[8] || "") : String(row[7] || "");
-    var pagamento = hasSkuCol ? String(row[9] || "") : String(row[8] || "");
-    var observacao = hasSkuCol ? String(row[10] || "") : String(row[9] || "");
-    var comissao = hasSkuCol ? String(row[11] || "0,00") : String(row[10] || "0,00");
-    var lucro = hasSkuCol ? String(row[12] || "0,00") : String(row[11] || "0,00");
-    var saleId = String(row[colId] || ("sale-" + i));
+    var vendedor = colMap.vendedor !== -1 ? String(row[colMap.vendedor] || "") : "";
+    var sku = colMap.sku !== -1 ? String(row[colMap.sku] || "") : "";
+    var produto = colMap.produto !== -1 ? String(row[colMap.produto] || "") : "";
+    var preco = colMap.preco !== -1 ? String(row[colMap.preco] || "0,00") : "0,00";
+    var cliente = colMap.cliente !== -1 ? String(row[colMap.cliente] || "") : "";
+    var contato = colMap.contato !== -1 ? String(row[colMap.contato] || "") : "";
+    var endereco = colMap.endereco !== -1 ? String(row[colMap.endereco] || "") : "";
+    var frete = colMap.frete !== -1 ? String(row[colMap.frete] || "") : "";
+    var pagamento = colMap.pagamento !== -1 ? String(row[colMap.pagamento] || "") : "";
+    var observacao = colMap.observacao !== -1 ? String(row[colMap.observacao] || "") : "";
+    var comissao = colMap.comissao !== -1 ? String(row[colMap.comissao] || "0,00") : "0,00";
+    var lucro = colMap.lucro !== -1 ? String(row[colMap.lucro] || "0,00") : "0,00";
+    var saleId = (colMap.id !== -1 && row[colMap.id]) ? String(row[colMap.id]) : ("sale-" + i);
 
     sales.push({
       id: saleId,
